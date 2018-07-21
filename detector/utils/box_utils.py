@@ -1,5 +1,5 @@
 import tensorflow as tf
-from src.constants import EPSILON, SCALE_FACTORS
+from detector.constants import EPSILON, SCALE_FACTORS
 
 
 """

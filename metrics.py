@@ -7,8 +7,6 @@ For evaluation during the training I use average precision @ iou=0.5
 like in PASCAL VOC Challenge (detection task):
 http://host.robots.ox.ac.uk/pascal/VOC/voc2012/devkit_doc.pdf
 
-
-
 But after the training I test trained models
 using the official evaluation scripts.
 """

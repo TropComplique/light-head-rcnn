@@ -4,29 +4,22 @@ from .random_image_crop import random_image_crop
 from .other_augmentations import random_color_manipulations,\
     random_flip_left_right, random_pixel_value_scale, random_jitter_boxes
 
-"""
-When training or evaluating I use batch size equal to 1.
-When training I randomly resize the image keeping constant aspect ratio.
-During our training, we randomly sample the scale from {600, 700, 800,
-900, 1000} pixels, then resize the shorter edge of the image
-into the sampled scale. The max edge of the image is con-
-strained within 1400 pixels because the shorter edge may
-reach to 1000 pixels.
 
-800/1200
-"""
 
 
 class Pipeline:
     """Input pipeline for training or evaluation of object detectors."""
 
-    def __init__(self, filenames, is_training=False, params):
+    def __init__(self, filenames, is_training, params):
         """
         Arguments:
             filenames: a list of strings, paths to tfrecords files.
             is_training: a boolean.
             params: a dict.
         """
+        self.is_training = is_training
+        self.params = params
+
         def get_num_samples(filename):
             return sum(1 for _ in tf.python_io.tf_record_iterator(filename))
 
@@ -54,12 +47,10 @@ class Pipeline:
             self.parse_and_preprocess,
             num_parallel_calls=NUM_PARALLEL_CALLS
         )
-        dataset = batch(batch_size=1)
+        dataset = dataset.apply(tf.contrib.data.batch_and_drop_remainder(batch_size=1))
         dataset = dataset.prefetch(buffer_size=1)
 
         self.iterator = dataset.make_one_shot_iterator()
-        self.is_training = is_training
-        self.params = params
 
     def get_batch(self):
         """

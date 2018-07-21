@@ -10,15 +10,10 @@ def model_fn(features, labels, mode, params, config):
     The function is in format required by tf.estimator.
     """
 
-    # the base network
+    # build the main graph
+    eature_extractor = resnet
     is_training = mode == tf.estimator.ModeKeys.TRAIN
-    feature_extractor = FeatureExtractor(is_training)
-
-    # anchor maker
-    anchor_generator = AnchorGenerator()
-
-    # add box/label predictors to the feature extractor
-    detector = Detector(features['images'], feature_extractor, anchor_generator)
+    detector = Detector(features['images'], feature_extractor, is_training, params)
 
     # add NMS to the graph
     if not is_training:
@@ -45,23 +40,29 @@ def model_fn(features, labels, mode, params, config):
         regularization_loss = tf.losses.get_regularization_loss()
 
     # create localization and classification losses
-    losses = detector.loss(labels, params)
-    tf.losses.add_loss(params['localization_loss_weight'] * losses['localization_loss'])
-    tf.losses.add_loss(params['classification_loss_weight'] * losses['classification_loss'])
+    losses = detector.get_losses(labels, params)
+    losses = {
+            'roi_localization_loss': [], 'roi_classification_loss': [],
+            'rpn_localization_loss': [], 'rpn_classification_loss': []
+        }
+    
+    tf.losses.add_loss(params['localization_loss_weight'] * losses['rpn_localization_loss'])
+    tf.losses.add_loss(params['classification_loss_weight'] * losses['rpn_classification_loss'])
+    tf.losses.add_loss(params['localization_loss_weight'] * losses['roi_localization_loss'])
+    tf.losses.add_loss(params['classification_loss_weight'] * losses['roi_classification_loss'])
+    total_loss = tf.losses.get_total_loss(add_regularization_losses=True)
+
     tf.summary.scalar('regularization_loss', regularization_loss)
     tf.summary.scalar('localization_loss', losses['localization_loss'])
     tf.summary.scalar('classification_loss', losses['classification_loss'])
-    total_loss = tf.losses.get_total_loss(add_regularization_losses=True)
 
     if mode == tf.estimator.ModeKeys.EVAL:
-
-        filenames = features['filenames']
-        batch_size = filenames.shape.as_list()[0]
-        assert batch_size == 1
-
+        
         with tf.name_scope('evaluator'):
             evaluator = Evaluator()
-            eval_metric_ops = evaluator.get_metric_ops(filenames, labels, predictions)
+            eval_metric_ops = evaluator.get_metric_ops(
+                features['filenames'], labels, predictions
+            )
 
         return tf.estimator.EstimatorSpec(
             mode, loss=total_loss,
@@ -74,9 +75,8 @@ def model_fn(features, labels, mode, params, config):
         learning_rate = tf.train.piecewise_constant(global_step, params['lr_boundaries'], params['lr_values'])
         tf.summary.scalar('learning_rate', learning_rate)
 
-    update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-    with tf.control_dependencies(update_ops), tf.variable_scope('optimizer'):
-        optimizer = tf.train.MomentumOptimizer(learning_rate, momentum=0.9, use_nesterov=True)
+    with tf.variable_scope('optimizer'):
+        optimizer = tf.train.MomentumOptimizer(learning_rate, momentum=0.9)
         grads_and_vars = optimizer.compute_gradients(total_loss)
         train_op = optimizer.apply_gradients(grads_and_vars, global_step)
 
@@ -88,13 +88,7 @@ def model_fn(features, labels, mode, params, config):
 
 
 def add_weight_decay(weight_decay):
-    """Add L2 regularization to all (or some) trainable kernel weights."""
-    weight_decay = tf.constant(
-        weight_decay, tf.float32,
-        [], 'weight_decay'
-    )
-    trainable_vars = tf.trainable_variables()
-    kernels = [v for v in trainable_vars if 'weights' in v.name]
-    for K in kernels:
-        x = tf.multiply(weight_decay, tf.nn.l2_loss(K))
-        tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, x)
+    weights = [v for v in tf.trainable_variables() if 'weights' in v.name]
+    for w in weights:
+        value = tf.multiply(weight_decay, tf.nn.l2_loss(w))
+        tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, value)
