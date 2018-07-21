@@ -103,7 +103,6 @@ def dict_to_tf_example(annotation, image_dir, label_encoder):
         xmax.append(d)
         labels.append(label)
 
-
     example = tf.train.Example(features=tf.train.Features(feature={
         'filename': _bytes_feature(image_name.encode()),
         'image': _bytes_feature(encoded_jpg),

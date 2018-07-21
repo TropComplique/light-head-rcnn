@@ -1,1 +1,1 @@
-from .input_pipeline import Pipeline
+from .detector import Detector

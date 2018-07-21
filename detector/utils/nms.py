@@ -11,9 +11,10 @@ def multiclass_non_max_suppression(
     Arguments:
         boxes: a float tensor with shape [N, num_classes, 4].
         scores: a float tensor with shape [N, num_classes].
-        score_thresh: a float number.
+        score_threshold: a float number.
         iou_threshold: a float number.
-        max_boxes_per_class: an integer, maximum number of retained boxes per class.
+        max_boxes_per_class: an integer,
+            maximum number of retained boxes per class.
     Returns:
         selected_boxes: a float tensor with shape [M, 4],
             where 0 <= M <= N.
@@ -55,7 +56,7 @@ def batch_multiclass_non_max_suppression(
         boxes: a float tensor with shape [M, 4].
         scores: a float tensor with shape [M].
         classes: an int tensor with shape [M].
-        num_detections: an int tensor with shape [batch_size].
+        num_boxes_per_image: an int tensor with shape [batch_size].
 
     """
     batch_size = num_boxes_per_image.shape[0].value
@@ -79,9 +80,9 @@ def batch_multiclass_non_max_suppression(
         selected_classes.append(c)
         num_selected_boxes_per_image.append(n)
 
-    selected_boxes = tf.concat(selected_boxes, axis=0)
-    selected_scores = tf.concat(selected_scores, axis=0)
-    selected_classes = tf.concat(selected_classes, axis=0)
-    num_selected_boxes_per_image = tf.stack(num_selected_boxes_per_image)
+    boxes = tf.concat(selected_boxes, axis=0)
+    scores = tf.concat(selected_scores, axis=0)
+    classes = tf.concat(selected_classes, axis=0)
+    num_boxes_per_image = tf.stack(num_selected_boxes_per_image)
 
-    return selected_boxes, selected_scores, selected_classes, num_selected_boxes_per_image
+    return boxes, scores, classes, num_boxes_per_image

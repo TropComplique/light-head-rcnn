@@ -1,6 +1,5 @@
 import tensorflow as tf
-from head import head
-from ps_roi_align import position_sensitive_roi_align_pooling
+from .ps_roi_align import position_sensitive_roi_align_pooling
 
 
 def head(x, rois, roi_image_indices, image_size, params):
@@ -24,11 +23,11 @@ def head(x, rois, roi_image_indices, image_size, params):
     # 10 is a value from the original light-head-rcnn paper
 
     with tf.variable_scope('thin_feature_maps'):
-        params = {
+        config = {
             'padding': 'SAME', 'activation_fn': None,
             'weights_initializer': tf.random_normal_initializer(mean=0.0, stddev=0.01)
         }
-        with slim.arg_scope([slim.conv2d], **params):
+        with slim.arg_scope([slim.conv2d], **config):
             left = slim.conv2d(x, channels_middle, [k, 1], scope='conv_%dx1_left' % k)
             left = slim.conv2d(left, channels_out, [1, k], scope='conv_1x%d_left' % k)
             right = slim.conv2d(x, channels_middle, [1, k], scope='conv_1x%d_right' % k)
@@ -40,7 +39,10 @@ def head(x, rois, roi_image_indices, image_size, params):
 
         # to normalized coordinates
         image_width, image_height = image_size
-        scaler = tf.stack([image_height, image_width, image_height, image_width])
+        scaler = tf.stack([
+            image_height - 1, image_width - 1,
+            image_height - 1, image_width - 1
+        ])
         rois = rois/scaler
 
         x = position_sensitive_roi_align(

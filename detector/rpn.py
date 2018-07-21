@@ -89,7 +89,7 @@ def rpn(x, is_training, image_size, params):
         min_proposal_area=params['min_proposal_area'],
         before_nms_score_threshold=params['before_nms_score_threshold'],
         nms_max_output_size=params['nms_max_output_size'],
-        iou_threshold=params['iou_threshold']
+        iou_threshold=params['proposal_iou_threshold']
     )
     rpn_output = {
         'encoded_boxes': encoded_boxes,

@@ -5,8 +5,6 @@ from .other_augmentations import random_color_manipulations,\
     random_flip_left_right, random_pixel_value_scale, random_jitter_boxes
 
 
-
-
 class Pipeline:
     """Input pipeline for training or evaluation of object detectors."""
 

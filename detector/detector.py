@@ -1,7 +1,7 @@
 import tensorflow as tf
 from .rpn import rpn
 from .head import head
-from .utils import decode
+from .utils import decode, batch_decode, batch_multiclass_non_max_suppression
 from .training_target_creation import get_training_targets
 from .losses_and_subsampling import positive_negative_subsample,\
     localization_loss, classification_loss
@@ -13,7 +13,7 @@ class Detector:
         Arguments:
             images: a float tensor with shape [batch_size, image_height, image_width, 3],
                 it represents RGB images with pixel values in range [0, 255].
-            feature_extractor: it takes an image and returns a dict with float tensors.
+            feature_extractor: it takes images and returns a dict with float tensors.
             is_training: a boolean.
             params: a dict.
         """
@@ -46,20 +46,29 @@ class Detector:
         with tf.name_scope('decoding'):
 
             rois = tf.concat(self.proposals['rois'], axis=0)
-            boxes = decode(self.encoded_boxes, rois)
-            # it has shape [total_num_proposals, 4]
+            # shape [total_num_proposals, 4]
+
+            encoded_boxes = tf.transpose(self.encoded_boxes, perm=[1, 0, 2])
+            # shape [num_classes, total_num_proposals, 4]
+
+            boxes = batch_decode(encoded_boxes, rois)
+            boxes = tf.transpose(boxes, perm=[1, 0, 2])
+            # it has shape [total_num_proposals, num_classes, 4]
 
             probabilities = tf.nn.softmax(self.logits, axis=1)[:, 1:]
             # it has shape [total_num_proposals, num_classes]
 
-
         with tf.device('/cpu:0'), tf.name_scope('nms'):
-            boxes, scores, classes, num_detections = batch_multiclass_non_max_suppression(
+            boxes, scores, classes, num_boxes_per_image = batch_multiclass_non_max_suppression(
                 boxes, probabilities, self.proposals['num_proposals_per_image']
                 score_threshold, iou_threshold,
                 max_boxes_per_class
             )
-        return {'boxes': boxes, 'labels': classes, 'scores': scores, 'num_boxes': num_detections}
+        predictions = {
+            'boxes': boxes, 'labels': classes, 'scores': scores,
+            'num_boxes_per_image': num_boxes_per_image
+        }
+        return predictions
 
     def get_losses(self, groundtruth, params):
         """
@@ -83,6 +92,7 @@ class Detector:
 
         rois_list = self.proposals['rois']
         num_proposals = self.proposals['num_proposals_per_image']  # shape [batch_size]
+        batch_size = num_proposals.shape[0].value
 
         encoded_boxes_list = tf.split(self.encoded_boxes, num_or_size_splits=num_proposals, axis=0)
         logits_list = tf.split(self.logits, num_or_size_splits=num_proposals, axis=0)
@@ -197,6 +207,5 @@ class Detector:
             losses['rpn_localization_loss'].append(rpn_loc_loss)
             losses['rpn_classification_loss'].append(rpn_cls_loss)
 
-            tf.summary.scalar('total_mean_matches_per_image', tf.reduce_mean(matches_per_image))
-
+        losses = {n: tf.add_n(v)/batch_size, n, v in losses.items()}
         return losses
