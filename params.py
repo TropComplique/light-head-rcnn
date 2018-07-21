@@ -1,10 +1,11 @@
 
-params_wider = {
+wider_params = {
 
     # TRAINING PARAMETERS:
 
     'model_dir': '/home/dan/work/light-head-rcnn/models/run00/',
     'train_dataset_path': '/mnt/datasets/dan/wider_train_shards/',
+    'pretrained_checkpoint': 'pretrained/resnet_v1_50.ckpt',
 
     'num_classes': 1,
     'labels': '/home/dan/work/light-head-rcnn/data/wider_labels.txt',
@@ -29,7 +30,14 @@ params_wider = {
     'beta': 1.0,
     'gamma': 1.0,
     'theta': 1.0,
-
+    
+    'positives_threshold': 0.7,
+    'negatives_threshold': 0.3,
+    'second_stage_threshold': 0.5,
+    'first_stage_batch_size': 256,
+    'positive_fraction': 0.5,
+    'num_hard_examples': 256,
+    
     'weight_decay': 1e-5,
 
     # EVALUATION PARAMETERS:
@@ -43,7 +51,7 @@ params_wider = {
 
     'score_threshold': 0.1,
     'iou_threshold': 0.4,
-    'max_boxes': 100,
+    'max_boxes_per_class': 100,
 
     # MODEL PARAMETERS:
 

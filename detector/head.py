@@ -1,4 +1,5 @@
 import tensorflow as tf
+import tensorflow.contrib.slim as slim
 from .ps_roi_align import position_sensitive_roi_align_pooling
 
 
@@ -39,13 +40,13 @@ def head(x, rois, roi_image_indices, image_size, params):
 
         # to normalized coordinates
         image_width, image_height = image_size
-        scaler = tf.stack([
+        scaler = tf.to_float(tf.stack([
             image_height - 1, image_width - 1,
             image_height - 1, image_width - 1
-        ])
+        ]))
         rois = rois/scaler
 
-        x = position_sensitive_roi_align(
+        x = position_sensitive_roi_align_pooling(
             x, rois, roi_image_indices,
             crop_size=params['crop_size'],
             num_spatial_bins=params['num_spatial_bins']

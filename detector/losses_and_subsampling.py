@@ -57,8 +57,8 @@ def positive_negative_subsample(indicator, is_positive, batch_size=256, positive
     sampled_positives_indicator = subsample_indicator(is_positive, max_num_positives)
 
     # sample negatives
-    max_num_negatives = batch_size - tf.reduce_sum(tf.to_int32(sampled_positives_indices))
-    sampled_negatives_indicator = subsample_indicator(negative_idx, max_num_negatives)
+    max_num_negatives = batch_size - tf.reduce_sum(tf.to_int32(sampled_positives_indicator))
+    sampled_negatives_indicator = subsample_indicator(is_negative, max_num_negatives)
 
     is_sampled = tf.logical_or(sampled_positives_indicator, sampled_negatives_indicator)
     # if sum(indicator) >= batch_size
@@ -86,12 +86,12 @@ def subsample_indicator(indicator, num_samples):
 
     num_samples = tf.minimum(tf.size(indices), num_samples)
     selected_indices = tf.slice(indices, [0], [num_samples])
-
+    
     selected_indicator = tf.sparse_to_dense(
-        sparse_indices=selected_indices,
+        sparse_indices=tf.to_int32(selected_indices),
         output_shape=tf.shape(indicator),
         sparse_values=1, default_value=0,
-        validate_indices=True
+        validate_indices=False
     )
 
     # if sum(indicator) >= num_samples

@@ -44,10 +44,10 @@ class Evaluator:
     def get_metric_ops(self, image_name, groundtruth, predictions):
         """
         Arguments:
-            image_name: a string tensor with shape [].
+            image_name: a string tensor with shape [1].
             groundtruth: a dict with the following keys
-                'boxes': a float tensor with shape [N, 4].
-                'labels': an int tensor with shape [N].
+                'boxes': a float tensor with shape [1, N, 4].
+                'labels': an int tensor with shape [1, N].
             predictions: a dict with the following keys
                 'boxes': a float tensor with shape [M, 4].
                 'labels': an int tensor with shape [M].
@@ -59,7 +59,7 @@ class Evaluator:
             self.add_detections(image_name, boxes, labels, scores)
 
         tensors = [
-            image_name, groundtruth['boxes'], groundtruth['labels'],
+            image_name[0], groundtruth['boxes'][0], groundtruth['labels'][0],
             predictions['boxes'], predictions['labels'], predictions['scores']
         ]
         update_op = tf.py_func(update_op_func, tensors, [])
@@ -82,9 +82,9 @@ class Evaluator:
             ]
 
             eval_metric_ops = {}
-            for labels in range(self.num_classes):
+            for label in range(self.num_classes):
                 for measure in metric_names:
-                    name = 'metrics/' + measure + '_for_' + self.class_name[label]
+                    name = 'metrics/' + measure + '_for_' + self.class_names[label]
                     value_op = tf.py_func(get_value_func(label, measure), [], tf.float32)
                     eval_metric_ops[name] = (value_op, update_op)
 
@@ -177,7 +177,7 @@ def evaluate_detector(groundtruth, detections, iou_threshold=0.5):
         # each detection is either TP or FP
         num_detections += 1
 
-        groundtruth_boxes = groundtruth.get(detection.image_name, [])
+        groundtruth_boxes = groundtruth.get(detection['image_name'], [])
         best_groundtruth_i, max_iou = match(detection, groundtruth_boxes)
 
         if best_groundtruth_i >= 0 and max_iou >= iou_threshold:
@@ -199,7 +199,7 @@ def evaluate_detector(groundtruth, detections, iou_threshold=0.5):
     return {
         'AP': ap, 'precision': best_precision,
         'recall': best_recall, 'best_threshold': best_threshold,
-        'mean_iou': mean_iou, 'total_FP': num_detections - num_correct_detections,
+        'mean_iou_for_TP': mean_iou, 'total_FP': num_detections - num_correct_detections,
         'total_FN': num_groundtruth_boxes - num_correct_detections
     }
 

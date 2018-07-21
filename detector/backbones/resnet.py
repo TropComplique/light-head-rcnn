@@ -1,5 +1,5 @@
 import tensorflow as tf
-import tf.contrib.slim as slim
+import tensorflow.contrib.slim as slim
 from detector.constants import BATCH_NORM_MOMENTUM, BATCH_NORM_EPSILON
 
 
@@ -43,7 +43,9 @@ def resnet(images, is_training):
     """
 
     with tf.name_scope('standardize'):
-        channel_means = tf.constant([123.68, 116.78, 103.94], dtype=tf.float32)
+        channel_means = tf.constant([123.15163, 115.902885, 103.06262], dtype=tf.float32)
+        # 123.15163  115.902885 103.06262
+        # 123.68, 116.78, 103.94
         x = images - channel_means
 
     def batch_norm(x):
@@ -76,16 +78,17 @@ def resnet(images, is_training):
 
 
 def stack_units(x, config, scope='block'):
-    num_units = len(configuration)
-    for i in range(1, num_units + 1):
-        base_depth, stride, rate = config[i]
-        x = bottleneck(
-            x, depth=base_depth * 4,
-            depth_bottleneck=base_depth,
-            stride=stride, rate=rate,
-            scope='unit_%d' % i
-        )
-    return x
+    with tf.variable_scope(scope):
+        num_units = len(config)
+        for i in range(num_units):
+            base_depth, stride, rate = config[i]
+            x = bottleneck(
+                x, depth=base_depth * 4,
+                depth_bottleneck=base_depth,
+                stride=stride, rate=rate,
+                scope='unit_%d/bottleneck_v1' % (i + 1)
+            )
+        return x
 
 
 def bottleneck(x, depth, depth_bottleneck, stride, rate=1, scope='bottleneck'):

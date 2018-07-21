@@ -70,7 +70,7 @@ def position_sensitive_roi_align_pooling(
 
         # do max pooling over spatial positions within the bin
         crop = tf.reduce_max(crop, axis=[1, 2])
-        crop = tf expand_dims(crop, 1)
+        crop = tf.expand_dims(crop, 1)
         # shape [num_boxes, 1, depth/total_bins]
 
         feature_crops.append(crop)

@@ -25,14 +25,14 @@ def multiclass_non_max_suppression(
     scores_list = tf.unstack(scores, axis=1)
 
     selected_boxes, selected_scores, selected_classes = [], [], []
-    for i, (b, s) in enumerate(boxes_list, scores_list):
+    for i, (b, s) in enumerate(zip(boxes_list, scores_list)):
 
         selected_indices = tf.image.non_max_suppression(
             boxes=b, scores=s, max_output_size=max_boxes_per_class,
             iou_threshold=iou_threshold, score_threshold=score_threshold,
         )
-        selected_boxes += [tf.gather(class_boxes, selected_indices)]
-        selected_scores += [tf.gather(class_scores, selected_indices)]
+        selected_boxes += [tf.gather(b, selected_indices)]
+        selected_scores += [tf.gather(s, selected_indices)]
         selected_classes += [i * tf.ones_like(selected_indices)]
 
     selected_boxes = tf.concat(selected_boxes, axis=0)

@@ -11,16 +11,21 @@ def model_fn(features, labels, mode, params, config):
     """
 
     # build the main graph
-    eature_extractor = resnet
+    feature_extractor = resnet
     is_training = mode == tf.estimator.ModeKeys.TRAIN
     detector = Detector(features['images'], feature_extractor, is_training, params)
+    
+    # use a pretrained backbone network
+    if is_training:
+        with tf.name_scope('init_from_checkpoint'):
+            tf.train.init_from_checkpoint(params['pretrained_checkpoint'], {'resnet_v1_50/': 'resnet_v1_50/'})
 
     # add NMS to the graph
     if not is_training:
         predictions = detector.get_predictions(
             score_threshold=params['score_threshold'],
             iou_threshold=params['iou_threshold'],
-            max_boxes=params['max_boxes']
+            max_boxes_per_class=params['max_boxes_per_class']
         )
 
     if mode == tf.estimator.ModeKeys.PREDICT:
@@ -47,14 +52,14 @@ def model_fn(features, labels, mode, params, config):
     tf.losses.add_loss(params['theta'] * losses['roi_classification_loss'])
     total_loss = tf.losses.get_total_loss(add_regularization_losses=True)
 
-    tf.summary.scalar('regularization_loss', regularization_loss)
-    tf.summary.scalar('localization_loss', losses['localization_loss'])
-    tf.summary.scalar('classification_loss', losses['classification_loss'])
+#     tf.summary.scalar('regularization_loss', regularization_loss)
+#     tf.summary.scalar('localization_loss', losses['localization_loss'])
+#     tf.summary.scalar('classification_loss', losses['classification_loss'])
 
     if mode == tf.estimator.ModeKeys.EVAL:
 
         with tf.name_scope('evaluator'):
-            evaluator = Evaluator()
+            evaluator = Evaluator(class_names=['face'])
             eval_metric_ops = evaluator.get_metric_ops(
                 features['filenames'], labels, predictions
             )

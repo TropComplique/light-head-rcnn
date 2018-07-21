@@ -1,5 +1,5 @@
 import tensorflow as tf
-import tf.contrib.slim as slim
+import tensorflow.contrib.slim as slim
 import itertools
 from detector.utils import prune_outside_window, clip_by_window, batch_decode
 
@@ -124,9 +124,10 @@ def generate_anchors(
         ratios_sqrt = tf.sqrt(aspect_ratios)
         heights = scales / ratios_sqrt
         widths = scales * ratios_sqrt
-
-        y_translation = tf.range(grid_height, dtype=tf.float32) * anchor_stride[0]
-        x_translation = tf.range(grid_width, dtype=tf.float32) * anchor_stride[1]
+        
+        stride_y, stride_x = anchor_stride
+        y_translation = tf.to_float(tf.range(grid_height)) * stride_y
+        x_translation = tf.to_float(tf.range(grid_width)) * stride_x
         x_translation, y_translation = tf.meshgrid(x_translation, y_translation)
         # they have shape [grid_height, grid_width]
 
@@ -177,7 +178,7 @@ def get_proposals(
         objectness_scores: a float tensor with shape [batch_size, num_anchors, 2].
         anchors: a float tensor with shape [num_anchors, 4].
     """
-    batch_size = encoded_bounding_boxes.shape.as_list()[0]
+    batch_size = encoded_boxes.shape[0].value
     height, width = tf.shape(anchors)[0], tf.shape(anchors)[1]
     image_width, image_height = image_size
     window = tf.to_float(tf.stack([0, 0, image_height - 1, image_width - 1]))
@@ -204,7 +205,7 @@ def get_proposals(
         anchors = clip_by_window(anchors, window)
         # do i need to clip here or not?
 
-    probabilities = tf.nn.softmax(objectness_score, axis=2)  # shape [batch_size, num_anchors, 2]
+    probabilities = tf.nn.softmax(objectness_scores, axis=2)  # shape [batch_size, num_anchors, 2]
     probabilities = probabilities[:, :, 1]  # shape [batch_size, num_anchors]
     boxes = batch_decode(encoded_boxes, anchors)  # shape [batch_size, num_anchors, 4]
 
@@ -217,13 +218,14 @@ def get_proposals(
         b = clip_by_window(b, window)
         b, p = remove_some_proposals(b, p, min_proposal_area, before_nms_score_threshold)
         to_keep = tf.image.non_max_suppression(b, p, nms_max_output_size, iou_threshold)
-
-        rois.append(tf.gather(b, to_keep))
+        b = tf.gather(b, to_keep)
+        
+        # because i do "approximate joint training"
+        b = tf.stop_gradient(b)
+    
+        rois.append(b)
         roi_image_indices.append(tf.fill([tf.size(to_keep)], n))
         num_proposals.append(tf.size(to_keep))
-
-    # because i do "approximate joint training"
-    rois = tf.stop_gradient(rois)
 
     proposals = {
         'rois': rois,

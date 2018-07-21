@@ -19,7 +19,7 @@ class Detector:
         """
 
         # image size is dynamic
-        image_height, image_width = tf.shape(image)[1], tf.shape(image)[2]
+        image_height, image_width = tf.shape(images)[1], tf.shape(images)[2]
         image_size = (image_width, image_height)
 
         # the main computational graph is build here
@@ -60,7 +60,7 @@ class Detector:
 
         with tf.device('/cpu:0'), tf.name_scope('nms'):
             boxes, scores, classes, num_boxes_per_image = batch_multiclass_non_max_suppression(
-                boxes, probabilities, self.proposals['num_proposals_per_image']
+                boxes, probabilities, self.proposals['num_proposals_per_image'],
                 score_threshold, iou_threshold,
                 max_boxes_per_class
             )
@@ -207,5 +207,5 @@ class Detector:
             losses['rpn_localization_loss'].append(rpn_loc_loss)
             losses['rpn_classification_loss'].append(rpn_cls_loss)
 
-        losses = {n: tf.add_n(v)/batch_size, n, v in losses.items()}
+        losses = {n: tf.add_n(v)/batch_size for n, v in losses.items()}
         return losses
