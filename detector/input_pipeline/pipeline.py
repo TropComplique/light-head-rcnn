@@ -6,7 +6,10 @@ from .other_augmentations import random_color_manipulations,\
 
 
 class Pipeline:
-    """Input pipeline for training or evaluation of object detectors."""
+    """
+    Input pipeline for training or evaluation of object detectors.
+    Note that it only outputs batches of size 1.
+    """
 
     def __init__(self, filenames, is_training, params):
         """
@@ -28,6 +31,8 @@ class Pipeline:
             num_examples += num_examples_in_file
         assert num_examples > 0
 
+        # because datasets are big,
+        # we split them into many small pieces (shards)
         dataset = tf.data.Dataset.from_tensor_slices(filenames)
         num_shards = len(filenames)
 
@@ -52,7 +57,7 @@ class Pipeline:
 
     def get_batch(self):
         """
-        Note that batch size is 1.
+        Batch size is a static value that equals to 1.
 
         Returns:
             features: a dict with the following keys
@@ -109,7 +114,7 @@ class Pipeline:
             parsed_features['ymax'], parsed_features['xmax']
         ], axis=1)
         boxes = tf.to_float(boxes)
-        # box coordinates are relative (normalized)
+        # box coordinates are relative (normalized) here
 
         if self.is_training:
             image, boxes, labels = self.augmentation(image, boxes, labels)
@@ -151,14 +156,19 @@ class Pipeline:
         image, boxes = random_flip_left_right(image, boxes)
 
         def random_resize(image):
+            """Multiscale training implementation."""
+
             training_min_dimensions = self.params['training_min_dimensions']
             training_max_dimension = self.params['training_max_dimension']
 
             # choose a random minimal dimension
             min_dimensions = tf.constant(training_min_dimensions, dtype=tf.int32)
-            min_dimension = tf.random_shuffle(min_dimensions)[0]
+            random_min_dimension = tf.random_shuffle(min_dimensions)[0]
 
-            image = resize_keeping_aspect_ratio(image, min_dimension, training_max_dimension)
+            image = resize_keeping_aspect_ratio(
+                image, random_min_dimension,
+                training_max_dimension
+            )
             return image
 
         image = random_resize(image)

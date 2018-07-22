@@ -15,30 +15,31 @@ wider_params = {
     # an integer or None
     'training_max_dimension': 1400,
 
-    'num_steps': 300000,
-    'lr_boundaries': [160000, 200000],
-    'lr_values': [0.0004, 0.00004, 0.000004],
+    'num_steps': 1600000,
+    'lr_boundaries': [900000, 1200000],
+    'lr_values': [3e-4, 3e-5, 3e-6],
 
     'min_proposal_area': 64,
     'before_nms_score_threshold': 0.01,
     # an integer
-    'nms_max_output_size': 300,
+    'nms_max_output_size': 600,
     # a float number
     'proposal_iou_threshold': 0.7,
 
-    'alpha': 1.0,
-    'beta': 1.0,
-    'gamma': 1.0,
-    'theta': 1.0,
-    
-    'positives_threshold': 0.7,
+    # float numbers, weights for losses
+    'alpha': 1.0,  # rpn localization
+    'beta': 1.0,  # rpn classification
+    'gamma': 1.0,  # roi localization
+    'theta': 1.0,  # roi classification
+
+    'positives_threshold': 0.5,  # or 0.7
     'negatives_threshold': 0.3,
     'second_stage_threshold': 0.5,
     'first_stage_batch_size': 256,
     'positive_fraction': 0.5,
     'num_hard_examples': 256,
-    
-    'weight_decay': 1e-5,
+
+    'weight_decay': 1e-4,
 
     # EVALUATION PARAMETERS:
 

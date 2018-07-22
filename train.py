@@ -13,7 +13,7 @@ tf.logging.set_verbosity('INFO')
 
 
 """
-The purpose of this script is to train a detector. 
+The purpose of this script is to train a detector.
 Evaluation will happen periodically.
 
 To use it just run:
@@ -25,7 +25,7 @@ GPU_TO_USE = '0'
 
 def get_input_fn(is_training):
 
-    dataset_path = params['train_dataset_path'] if is_training  else params['val_dataset_path']
+    dataset_path = params['train_dataset_path'] if is_training else params['val_dataset_path']
     filenames = os.listdir(dataset_path)
     filenames = [n for n in filenames if n.endswith('.tfrecords')]
     filenames = [os.path.join(dataset_path, n) for n in sorted(filenames)]

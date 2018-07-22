@@ -124,7 +124,7 @@ def generate_anchors(
         ratios_sqrt = tf.sqrt(aspect_ratios)
         heights = scales / ratios_sqrt
         widths = scales * ratios_sqrt
-        
+
         stride_y, stride_x = anchor_stride
         y_translation = tf.to_float(tf.range(grid_height)) * stride_y
         x_translation = tf.to_float(tf.range(grid_width)) * stride_x
@@ -219,10 +219,10 @@ def get_proposals(
         b, p = remove_some_proposals(b, p, min_proposal_area, before_nms_score_threshold)
         to_keep = tf.image.non_max_suppression(b, p, nms_max_output_size, iou_threshold)
         b = tf.gather(b, to_keep)
-        
+
         # because i do "approximate joint training"
         b = tf.stop_gradient(b)
-    
+
         rois.append(b)
         roi_image_indices.append(tf.fill([tf.size(to_keep)], n))
         num_proposals.append(tf.size(to_keep))

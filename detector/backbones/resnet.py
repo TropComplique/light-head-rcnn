@@ -1,6 +1,9 @@
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
-from detector.constants import BATCH_NORM_MOMENTUM, BATCH_NORM_EPSILON
+
+
+BATCH_NORM_MOMENTUM = 0.997
+BATCH_NORM_EPSILON = 1e-5
 
 
 """
@@ -9,7 +12,7 @@ Notes:
    https://github.com/tensorflow/models/blob/master/research/slim/nets/resnet_v1.py
 
 2. It differs from the original resnet architecture (like in the original paper).
-   In this implementation we subsample the output activations in the last residual unit of
+   In this implementation I subsample the output activations in the last residual unit of
    each block, instead of subsampling the input activations in the first residual
    unit of each block.
 
@@ -28,8 +31,10 @@ Notes:
 """
 
 
-def resnet(images, is_training):
-    """This is classical ResNet-50 architecture.
+def resnet(images):
+    """
+    This is classical ResNet-50 architecture
+    (with some changes noted above).
 
     It implemented in a way that works with
     the official tensorflow pretrained checkpoints.
@@ -37,15 +42,12 @@ def resnet(images, is_training):
     Arguments:
         images: a float tensor with shape [batch_size, image_height, image_width, 3],
             it represents RGB images with pixel values in range [0, 255].
-        is_training: a boolean.
     Returns:
         a dict of with two float tensors.
     """
 
     with tf.name_scope('standardize'):
         channel_means = tf.constant([123.15163, 115.902885, 103.06262], dtype=tf.float32)
-        # 123.15163  115.902885 103.06262
-        # 123.68, 116.78, 103.94
         x = images - channel_means
 
     def batch_norm(x):

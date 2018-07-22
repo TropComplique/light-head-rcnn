@@ -76,10 +76,10 @@ def randomly_crop_image(
         image = tf.slice(image, begin, size)
         window = tf.squeeze(window, axis=[0, 1])
 
-        # remove boxes that are completely outside cropped image
+        # remove boxes that are completely outside the cropped image
         boxes, inside_window_ids = prune_outside_window(boxes, window)
 
-        # remove boxes that are two much outside image
+        # remove boxes that are too much outside the cropped image
         boxes, keep_indices = prune_non_overlapping_boxes(
             boxes, tf.expand_dims(window, 0),
             min_overlap=overlap_thresh
@@ -109,8 +109,8 @@ def prune_non_overlapping_boxes(boxes1, boxes2, min_overlap):
     """
     with tf.name_scope('prune_non_overlapping_boxes'):
 
-        overlap = ioa(boxes2, boxes1)  # [M, N] tensor
-        overlap = tf.reduce_max(overlap, axis=0)  # [N] tensor
+        overlap = ioa(boxes2, boxes1)  # shape [M, N]
+        overlap = tf.reduce_max(overlap, axis=0)  # shape [N]
 
         keep_bool = tf.greater_equal(overlap, min_overlap)
         keep_indices = tf.squeeze(tf.where(keep_bool), axis=1)

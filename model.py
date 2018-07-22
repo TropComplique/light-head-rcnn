@@ -1,5 +1,4 @@
 import tensorflow as tf
-
 from detector import Detector
 from detector.backbones import resnet
 from metrics import Evaluator
@@ -14,7 +13,7 @@ def model_fn(features, labels, mode, params, config):
     feature_extractor = resnet
     is_training = mode == tf.estimator.ModeKeys.TRAIN
     detector = Detector(features['images'], feature_extractor, is_training, params)
-    
+
     # use a pretrained backbone network
     if is_training:
         with tf.name_scope('init_from_checkpoint'):
@@ -52,9 +51,11 @@ def model_fn(features, labels, mode, params, config):
     tf.losses.add_loss(params['theta'] * losses['roi_classification_loss'])
     total_loss = tf.losses.get_total_loss(add_regularization_losses=True)
 
-#     tf.summary.scalar('regularization_loss', regularization_loss)
-#     tf.summary.scalar('localization_loss', losses['localization_loss'])
-#     tf.summary.scalar('classification_loss', losses['classification_loss'])
+    tf.summary.scalar('regularization_loss', regularization_loss)
+    tf.summary.scalar('rpn_localization_loss', losses['rpn_localization_loss'])
+    tf.summary.scalar('rpn_classification_loss', losses['rpn_classification_loss'])
+    tf.summary.scalar('roi_localization_loss', losses['roi_localization_loss'])
+    tf.summary.scalar('roi_classification_loss', losses['roi_classification_loss'])
 
     if mode == tf.estimator.ModeKeys.EVAL:
 

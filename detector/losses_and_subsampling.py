@@ -86,7 +86,7 @@ def subsample_indicator(indicator, num_samples):
 
     num_samples = tf.minimum(tf.size(indices), num_samples)
     selected_indices = tf.slice(indices, [0], [num_samples])
-    
+
     selected_indicator = tf.sparse_to_dense(
         sparse_indices=tf.to_int32(selected_indices),
         output_shape=tf.shape(indicator),

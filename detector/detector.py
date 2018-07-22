@@ -23,7 +23,7 @@ class Detector:
         image_size = (image_width, image_height)
 
         # the main computational graph is build here
-        features = feature_extractor(images, is_training)
+        features = feature_extractor(images)
         self.proposals, self.rpn_output, self.anchors = rpn(
             features['block3'], is_training, image_size, params
         )
@@ -33,7 +33,7 @@ class Detector:
             params
         )
 
-    def get_predictions(self, score_threshold=0.1, iou_threshold=0.6, max_boxes_per_class=20):
+    def get_predictions(self, score_threshold=0.1, iou_threshold=0.4, max_boxes_per_class=100):
         """Postprocess outputs of the network.
         Returns:
             boxes: a float tensor with shape [batch_size, N, 4].
@@ -59,14 +59,14 @@ class Detector:
             # it has shape [total_num_proposals, num_classes]
 
         with tf.device('/cpu:0'), tf.name_scope('nms'):
-            boxes, scores, classes, num_boxes_per_image = batch_multiclass_non_max_suppression(
+            boxes, scores, classes, num_boxes = batch_multiclass_non_max_suppression(
                 boxes, probabilities, self.proposals['num_proposals_per_image'],
                 score_threshold, iou_threshold,
                 max_boxes_per_class
             )
         predictions = {
             'boxes': boxes, 'labels': classes, 'scores': scores,
-            'num_boxes_per_image': num_boxes_per_image
+            'num_boxes_per_image': num_boxes
         }
         return predictions
 
@@ -180,12 +180,10 @@ class Detector:
                 # they have shape [num_proposals_i]
 
             with tf.name_scope('ohem'):
-                # i don't need to nms here, because i did nms when generated proposals
-                _, indices = tf.nn.top_k(
-                    loc_losses + cls_losses,
-                    k=params['num_hard_examples'],
-                    sorted=False
-                )
+
+                # i don't need to do nms here,
+                # because i did nms at proposal generation
+                _, indices = tf.nn.top_k(cls_losses, k=params['num_hard_examples'], sorted=False)
                 hard_loc_losses = tf.gather(loc_losses, indices)
                 hard_cls_losses = tf.gather(cls_losses, indices)
 
@@ -202,10 +200,14 @@ class Detector:
 
                 hard_cls_loss = tf.reduce_mean(hard_cls_losses, axis=0)
 
+            tf.summary.scalar('num_rpn_positives', tf.reduce_sum(tf.to_float(is_positive), axis=0))
+            tf.summary.scalar('num_roi_positives', tf.reduce_sum(tf.gather(is_roi_positive, indices), axis=0))
+
             losses['roi_localization_loss'].append(hard_loc_loss)
             losses['roi_classification_loss'].append(hard_cls_loss)
             losses['rpn_localization_loss'].append(rpn_loc_loss)
             losses['rpn_classification_loss'].append(rpn_cls_loss)
 
+        # take means over the batch
         losses = {n: tf.add_n(v)/batch_size for n, v in losses.items()}
         return losses

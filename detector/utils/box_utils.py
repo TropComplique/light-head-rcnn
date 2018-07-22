@@ -24,7 +24,7 @@ def iou(boxes1, boxes2):
         areas1 = area(boxes1)
         areas2 = area(boxes2)
         unions = tf.expand_dims(areas1, 1) + tf.expand_dims(areas2, 0) - intersections
-        return tf.clip_by_value(tf.divide(intersections, unions), 0.0, 1.0)
+        return tf.clip_by_value(tf.divide(intersections, unions + EPSILON), 0.0, 1.0)
 
 
 def intersection(boxes1, boxes2):
@@ -154,7 +154,7 @@ def batch_decode(box_encodings, anchors):
     with tf.name_scope('batch_decode'):
 
         # batch size is a static value (it must be known when building the graph)
-        batch_size = box_encodings.shape.as_list()[0]
+        batch_size = box_encodings.shape[0].value
 
         # number of anchors depends on the image size (it is a dynamic value)
         num_anchors = tf.shape(anchors)[0]

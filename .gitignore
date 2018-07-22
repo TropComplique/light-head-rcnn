@@ -5,8 +5,3 @@ pretrained/
 models/
 export/
 *.pb
-
-data/coco_train_shards/
-data/coco_val_shards/
-data/wider_train_shards/
-data/wider_val_shards/

@@ -85,6 +85,9 @@ def dict_to_tf_example(annotation, image_dir, label_encoder):
 
     for obj in annotation['object']:
 
+        # it is assumed that all box coordinates are in
+        # ranges [0, height - 1] and [0, width - 1]
+
         a = float(obj['bndbox']['ymin'])/(height - 1)
         b = float(obj['bndbox']['xmin'])/(width - 1)
         c = float(obj['bndbox']['ymax'])/(height - 1)

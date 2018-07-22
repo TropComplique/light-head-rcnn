@@ -16,7 +16,7 @@ def depthwise_conv(
             dtype=tf.float32,
             initializer=tf.contrib.layers.xavier_initializer()
         )
-        x = tf.nn.depthwise_conv2d(x, W, [1, 1, stride, stride], padding, data_format='NCHW')
+        x = tf.nn.depthwise_conv2d(x, W, [1, stride, stride, 1], padding, data_format='NHWC')
         x = normalizer_fn(x) if normalizer_fn is not None else x  # batch normalization
         x = activation_fn(x) if activation_fn is not None else x  # nonlinearity
         return x
