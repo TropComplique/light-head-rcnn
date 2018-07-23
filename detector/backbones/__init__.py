@@ -1,2 +1,2 @@
 from .resnet import resnet
-from .mobilenet_v2 import mobilenet_v2
+from .mobilenet_v2 import mobilenet

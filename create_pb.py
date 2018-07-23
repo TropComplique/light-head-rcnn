@@ -47,10 +47,9 @@ estimator.export_savedmodel(
 
 
 def convert_to_pb(saved_model_folder):
-    
+
     subfolders = os.listdir(saved_model_folder)
     last_saved_model = os.path.join(saved_model_folder, sorted(subfolders)[0])
-    print(subfolders)
 
     graph = tf.Graph()
     config = tf.ConfigProto()
@@ -69,11 +68,8 @@ def convert_to_pb(saved_model_folder):
             )
             print([n.name for n in input_graph_def.node if 'NonMaxSuppression' in n.name])
             output_graph_def = tf.graph_util.remove_training_nodes(
-                input_graph_def,
-                protected_nodes=keep_nodes# + [n.name for n in input_graph_def.node if 'NonMaxSuppression' in n.name]
+                input_graph_def, protected_nodes=keep_nodes
             )
-            # ops in 'nms' scope must be protected for some reason,
-            # but why?
 
             with tf.gfile.GFile('model.pb', 'wb') as f:
                 f.write(output_graph_def.SerializeToString())

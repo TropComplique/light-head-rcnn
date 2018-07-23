@@ -9,6 +9,8 @@ from params import wider_params as params
 # to train an object detector on coco use this:
 # from params import coco_params as params
 
+# from params import wider_light_params as params
+
 tf.logging.set_verbosity('INFO')
 
 
@@ -33,42 +35,19 @@ def get_input_fn(is_training):
     def input_fn():
         with tf.device('/cpu:0'), tf.name_scope('input_pipeline'):
             pipeline = Pipeline(filenames, is_training, params)
-            # features, labels = pipeline.get_batch()
         return pipeline.dataset
-        # return features, labels
 
     return input_fn
 
 
-config = tf.ConfigProto(
-#     inter_op_parallelism_threads=0,
-#     intra_op_parallelism_threads=0,
-#     allow_soft_placement=True
-)
-config.gpu_options.visible_device_list = '0'
-
-# distribution = tf.contrib.distribute.MirroredStrategy(num_gpus=2)
-# distribution = tf.contrib.distribute.OneDeviceStrategy('device:GPU:{}'.format(0))
-
-run_config = tf.estimator.RunConfig(
-    #train_distribute=distribution,
-    session_config=config
-)
+session_config = tf.ConfigProto()
+session_config.gpu_options.visible_device_list = GPU_TO_USE
+run_config = tf.estimator.RunConfig()
 run_config = run_config.replace(
-    model_dir=params['model_dir'],
-    save_summary_steps=200,
-    save_checkpoints_secs=600,
+    model_dir=params['model_dir'], session_config=session_config,
+    save_summary_steps=200, save_checkpoints_secs=600,
     log_step_count_steps=100
 )
-
-# session_config = tf.ConfigProto()
-# session_config.gpu_options.visible_device_list = GPU_TO_USE
-# run_config = tf.estimator.RunConfig()
-# run_config = run_config.replace(
-#     model_dir=params['model_dir'], session_config=session_config,
-#     save_summary_steps=200, save_checkpoints_secs=600,
-#     log_step_count_steps=100
-# )
 
 train_input_fn = get_input_fn(is_training=True)
 val_input_fn = get_input_fn(is_training=False)

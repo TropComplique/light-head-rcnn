@@ -7,8 +7,10 @@ BATCH_NORM_MOMENTUM = 0.997
 BATCH_NORM_EPSILON = 1e-3
 
 
-def mobilenet_v2(images, depth_multiplier=1.0):
+def mobilenet(images, depth_multiplier=1.0):
     """
+    This is an implementation of MobileNet v2.
+
     Arguments:
         images: a float tensor with shape [batch_size, image_height, image_width, 3],
             a batch of RGB images with pixel values in the range [0, 255].
@@ -30,12 +32,12 @@ def mobilenet_v2(images, depth_multiplier=1.0):
             fused=True, name='BatchNorm'
         )
         return x
-    
+
     def stack_blocks(x, i, configs):
         for t, c, s in configs:
             x = inverted_residual_block(
                 x, stride=s, expansion_factor=t,
-                output_channels=depth(c) if s == 2 else None, 
+                output_channels=depth(c) if s == 2 else None,
                 scope='expanded_conv_%d' % i
             )
             features[block_name] = x
@@ -53,7 +55,7 @@ def mobilenet_v2(images, depth_multiplier=1.0):
             'data_format': 'NHWC'
         }
         with slim.arg_scope([slim.conv2d, depthwise_conv], **params):
-            
+
             # (t, c, s) - like in the original paper (table 2)
             block_configs = [
                 (6, 24, 2), (6, 24, 1)
@@ -64,7 +66,7 @@ def mobilenet_v2(images, depth_multiplier=1.0):
                 (6, 320, 1),
             ]
             i = 1
-            
+
             # initial layers are not trainable
             with slim.arg_scope([slim.conv2d, depthwise_conv], trainable=False):
 
@@ -75,10 +77,10 @@ def mobilenet_v2(images, depth_multiplier=1.0):
                     scope='expanded_conv'
                 )
                 x, i = stack_blocks(x, i, block_configs[0:5])  # block1 and block2
-            
-            rpn_features, i = stack_blocks(x, i, block_configs[5:12])  
+
+            rpn_features, i = stack_blocks(x, i, block_configs[5:12])
             # stride 16
-            
+
             x, _ = stack_blocks(x, i, block_configs[12:])
 
             final_channels = int(1280 * depth_multiplier) if depth_multiplier > 1.0 else 1280
@@ -87,7 +89,7 @@ def mobilenet_v2(images, depth_multiplier=1.0):
 
     return {'block3': rpn_features, 'block4': second_stage_features}
 
-    
+
 def inverted_residual_block(x, stride=1, expansion_factor=6, output_channels=None, scope='inverted_residual_block'):
 
     assert (stride == 1) or (stride == 2 and output_channels is not None)

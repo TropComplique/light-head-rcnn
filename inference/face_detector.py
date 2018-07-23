@@ -47,19 +47,11 @@ class FaceDetector:
         """
         h, w, _ = image.shape
         image = np.expand_dims(image, 0)
-
-        boxes, scores, _ = self.sess.run(
-            self.output_ops, feed_dict={self.input_image: image}
-        )
-        #num_boxes = num_boxes[0]
-        boxes = boxes#[:num_boxes]
-        scores = scores#[:num_boxes]
+        feed_dict = {self.input_image: image}
+        boxes, scores, _ = self.sess.run(self.output_ops, feed_dict)
 
         to_keep = scores > score_threshold
         boxes = boxes[to_keep]
         scores = scores[to_keep]
-
-        #scaler = np.array([h, w, h, w], dtype='float32')
-        #boxes = boxes * scaler
 
         return boxes, scores

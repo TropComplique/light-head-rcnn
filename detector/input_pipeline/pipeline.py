@@ -52,9 +52,9 @@ class Pipeline:
         )
         dataset = dataset.apply(tf.contrib.data.batch_and_drop_remainder(batch_size=1))
         # dataset = dataset.prefetch(buffer_size=1)
-        
+
         dataset = dataset.prefetch(buffer_size=tf.contrib.data.AUTOTUNE)
-        
+
         self.iterator = dataset.make_one_shot_iterator()
         self.dataset = dataset
 
@@ -74,7 +74,6 @@ class Pipeline:
         """
         features, labels = self.iterator.get_next()
         return features, labels
-    
 
     def parse_and_preprocess(self, example_proto):
         """What this function does:
@@ -136,8 +135,9 @@ class Pipeline:
 
         num_boxes = tf.to_int32(tf.shape(boxes)[0])
         filename = parsed_features['filename']
-        
-        # in the format required by tf.estimator
+
+        # in the format required by tf.estimator,
+        # they will be batched later
         features = {'images': image, 'filenames': filename}
         labels = {'boxes': boxes, 'labels': labels, 'num_boxes': num_boxes}
         return features, labels

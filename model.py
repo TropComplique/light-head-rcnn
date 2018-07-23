@@ -1,6 +1,6 @@
 import tensorflow as tf
 from detector import Detector
-from detector.backbones import resnet
+from detector.backbones import resnet, mobilenet
 from metrics import Evaluator
 
 
@@ -9,17 +9,25 @@ def model_fn(features, labels, mode, params, config):
     The function is in format required by tf.estimator.
     """
 
+    # choose a backbone network
+    if params['backbone'] == 'resnet':
+        feature_extractor = resnet
+        checkpoint_scope = 'resnet_v1_50/'
+    elif params['backbone'] == 'mobilenet':
+        feature_extractor = lambda x: mobilenet(x, params['depth_multiplier'])
+        checkpoint_scope = 'MobilenetV2/'
+
     # build the main graph
-    feature_extractor = resnet
     is_training = mode == tf.estimator.ModeKeys.TRAIN
-    #images =  tf.Print(features['images'], [features['filenames']])
-    images = features['images']
-    detector = Detector(images, feature_extractor, is_training, params)
+    detector = Detector(features['images'], feature_extractor, is_training, params)
 
     # use a pretrained backbone network
     if is_training:
         with tf.name_scope('init_from_checkpoint'):
-            tf.train.init_from_checkpoint(params['pretrained_checkpoint'], {'resnet_v1_50/': 'resnet_v1_50/'})
+            tf.train.init_from_checkpoint(
+                params['pretrained_checkpoint'],
+                {checkpoint_scope: checkpoint_scope}
+            )
 
     # add NMS to the graph
     if not is_training:
@@ -82,7 +90,6 @@ def model_fn(features, labels, mode, params, config):
         optimizer = tf.train.MomentumOptimizer(learning_rate, momentum=0.9)
         grads_and_vars = optimizer.compute_gradients(total_loss)
         train_op = optimizer.apply_gradients(grads_and_vars, global_step)
-        # train_op = tf.group(train_op)  # WTF!
 
     for g, v in grads_and_vars:
         tf.summary.histogram(v.name[:-2] + '_hist', v)
