@@ -51,9 +51,12 @@ class Pipeline:
             num_parallel_calls=NUM_PARALLEL_CALLS
         )
         dataset = dataset.apply(tf.contrib.data.batch_and_drop_remainder(batch_size=1))
-        dataset = dataset.prefetch(buffer_size=1)
-
+        # dataset = dataset.prefetch(buffer_size=1)
+        
+        dataset = dataset.prefetch(buffer_size=tf.contrib.data.AUTOTUNE)
+        
         self.iterator = dataset.make_one_shot_iterator()
+        self.dataset = dataset
 
     def get_batch(self):
         """
@@ -69,10 +72,9 @@ class Pipeline:
                 'num_boxes': an int tensor with shape [batch_size],
                     where max_num_boxes = max(num_boxes).
         """
-        images, boxes, labels, num_boxes, filenames = self.iterator.get_next()
-        features = {'images': images, 'filenames': filenames}
-        labels = {'boxes': boxes, 'labels': labels, 'num_boxes': num_boxes}
+        features, labels = self.iterator.get_next()
         return features, labels
+    
 
     def parse_and_preprocess(self, example_proto):
         """What this function does:
@@ -82,11 +84,11 @@ class Pipeline:
         Returns:
             image: a float tensor with shape [height, width, 3],
                 an RGB image with pixel values in the range [0, 255].
+            filename: a string tensor with shape [].
             boxes: a float tensor with shape [num_boxes, 4],
                 box coordinates are absolute.
             labels: an int tensor with shape [num_boxes].
             num_boxes: an int tensor with shape [].
-            filename: a string tensor with shape [].
         """
         features = {
             'filename': tf.FixedLenFeature([], tf.string),
@@ -134,7 +136,11 @@ class Pipeline:
 
         num_boxes = tf.to_int32(tf.shape(boxes)[0])
         filename = parsed_features['filename']
-        return image, boxes, labels, num_boxes, filename
+        
+        # in the format required by tf.estimator
+        features = {'images': image, 'filenames': filename}
+        labels = {'boxes': boxes, 'labels': labels, 'num_boxes': num_boxes}
+        return features, labels
 
     def augmentation(self, image, boxes, labels):
         # there are a lot of hyperparameters here,
@@ -149,9 +155,9 @@ class Pipeline:
         )
 
         # note that color augmentations are very slow!
-        image = random_color_manipulations(image, probability=0.1, grayscale_probability=0.05)
+        image = random_color_manipulations(image, probability=0.05, grayscale_probability=0.05)
 
-        image = random_pixel_value_scale(image, minval=0.85, maxval=1.15, probability=0.1)
+        image = random_pixel_value_scale(image, minval=0.85, maxval=1.15, probability=0.05)
         boxes = random_jitter_boxes(boxes, ratio=0.01)
         image, boxes = random_flip_left_right(image, boxes)
 

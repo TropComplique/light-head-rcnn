@@ -7,20 +7,19 @@ BATCH_NORM_MOMENTUM = 0.997
 BATCH_NORM_EPSILON = 1e-3
 
 
-def mobilenet_v2(images, depth_multiplier=1.0, min_depth=8):
+def mobilenet_v2(images, depth_multiplier=1.0):
     """
     Arguments:
         images: a float tensor with shape [batch_size, image_height, image_width, 3],
             a batch of RGB images with pixel values in the range [0, 255].
         depth_multiplier: a float number, multiplier for the number of filters in a layer.
-        min_depth: an integer, the minimal number of filters in a layer.
     Returns:
         a dict with float tensors.
     """
 
     def depth(x):
         """Reduce the number of filters in a layer."""
-        return make_divisible(x * depth_multiplier, divisor=8, min_value=min_depth)
+        return make_divisible(x * depth_multiplier, divisor=8, min_value=8)
 
     def batch_norm(x):
         x = tf.layers.batch_normalization(
@@ -31,6 +30,17 @@ def mobilenet_v2(images, depth_multiplier=1.0, min_depth=8):
             fused=True, name='BatchNorm'
         )
         return x
+    
+    def stack_blocks(x, i, configs):
+        for t, c, s in configs:
+            x = inverted_residual_block(
+                x, stride=s, expansion_factor=t,
+                output_channels=depth(c) if s == 2 else None, 
+                scope='expanded_conv_%d' % i
+            )
+            features[block_name] = x
+            i += 1
+        return x, i
 
     with tf.name_scope('standardize_input'):
         x = ((2.0 / 255.0) * images) - 1.0
@@ -43,58 +53,45 @@ def mobilenet_v2(images, depth_multiplier=1.0, min_depth=8):
             'data_format': 'NHWC'
         }
         with slim.arg_scope([slim.conv2d, depthwise_conv], **params):
-
+            
+            # (t, c, s) - like in the original paper (table 2)
+            block_configs = [
+                (6, 24, 2), (6, 24, 1)
+                (6, 32, 2), (6, 32, 1), (6, 32, 1),
+                (6, 64, 2), (6, 64, 1), (6, 64, 1), (6, 64, 1),
+                (6, 96, 1), (6, 96, 1), (6, 96, 1),
+                (6, 160, 2), (6, 160, 1), (6, 160, 1),
+                (6, 320, 1),
+            ]
+            i = 1
+            
+            # initial layers are not trainable
             with slim.arg_scope([slim.conv2d, depthwise_conv], trainable=False):
+
                 x = slim.conv2d(x, depth(32), (3, 3), stride=2, scope='Conv')
                 x = inverted_residual_block(
                     x, stride=1, expansion_factor=1,
                     output_channels=depth(16),
                     scope='expanded_conv'
                 )
+                x, i = stack_blocks(x, i, block_configs[0:5])  # block1 and block2
+            
+            rpn_features, i = stack_blocks(x, i, block_configs[5:12])  
+            # stride 16
+            
+            x, _ = stack_blocks(x, i, block_configs[12:])
 
-            # (t, c, n, s) - like in the original paper
-            block_configs = [
-                (6, 24, 2, 2),
-                (6, 32, 3, 2),
-                (6, 64, 4, 2),
-                (6, 96, 3, 1),
-                (6, 160, 3, 2),
-                (6, 320, 1, 1),
-            ]
-
-            i = 1
-            features = {}
-            for t, c, n, s in block_configs:
-
-                block_name = 'expanded_conv_%d' % i
-                x = inverted_residual_block(
-                    x, stride=s, expansion_factor=t,
-                    output_channels=depth(c), scope=block_name
-                )
-                features[block_name] = x
-                i += 1
-
-                for _ in range(1, n):
-                    block_name = 'expanded_conv_%d' % i
-                    x = inverted_residual_block(
-                        x, stride=1, expansion_factor=t,
-                        scope=block_name
-                    )
-                    features[block_name] = x
-                    i += 1
-
-            layer_name = 'Conv_1'
             final_channels = int(1280 * depth_multiplier) if depth_multiplier > 1.0 else 1280
-            x = slim.conv2d(x, final_channels, (1, 1), stride=1, scope=layer_name)
-            features[layer_name] = x
-    features = {}
-    return x, features
+            second_stage_features = slim.conv2d(x, final_channels, (1, 1), stride=1, scope='Conv_1')
+            # stride 32
 
+    return {'block3': rpn_features, 'block4': second_stage_features}
 
+    
 def inverted_residual_block(x, stride=1, expansion_factor=6, output_channels=None, scope='inverted_residual_block'):
 
     assert (stride == 1) or (stride == 2 and output_channels is not None)
-    in_channels = x.shape.as_list()[1]
+    in_channels = x.shape[3].value
     output_channels = output_channels if output_channels is not None else in_channels
     residual = x
 

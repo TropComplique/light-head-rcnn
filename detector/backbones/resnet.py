@@ -100,7 +100,7 @@ def bottleneck(x, depth, depth_bottleneck, stride, rate=1, scope='bottleneck'):
         residual = conv2d_same(residual, depth_bottleneck, 3, stride, rate=rate, scope='conv2')
         residual = slim.conv2d(residual, depth, [1, 1], stride=1, activation_fn=None, scope='conv3')
 
-        depth_in = x.shape.as_list()[3]
+        depth_in = x.shape[3].value
         if depth == depth_in:
             shortcut = subsample(x, stride, 'shortcut')
         else:

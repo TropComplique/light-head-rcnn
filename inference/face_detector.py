@@ -18,11 +18,11 @@ class FaceDetector:
         with graph.as_default():
             tf.import_graph_def(graph_def, name='import')
 
-        self.input_image = graph.get_tensor_by_name('import/image_tensor:0')
+        self.input_image = graph.get_tensor_by_name('import/images:0')
         self.output_ops = [
             graph.get_tensor_by_name('import/boxes:0'),
             graph.get_tensor_by_name('import/scores:0'),
-            graph.get_tensor_by_name('import/num_boxes:0'),
+            graph.get_tensor_by_name('import/num_boxes_per_image:0'),
         ]
 
         gpu_options = tf.GPUOptions(
@@ -48,18 +48,18 @@ class FaceDetector:
         h, w, _ = image.shape
         image = np.expand_dims(image, 0)
 
-        boxes, scores, num_boxes = self.sess.run(
+        boxes, scores, _ = self.sess.run(
             self.output_ops, feed_dict={self.input_image: image}
         )
-        num_boxes = num_boxes[0]
-        boxes = boxes[0][:num_boxes]
-        scores = scores[0][:num_boxes]
+        #num_boxes = num_boxes[0]
+        boxes = boxes#[:num_boxes]
+        scores = scores#[:num_boxes]
 
         to_keep = scores > score_threshold
         boxes = boxes[to_keep]
         scores = scores[to_keep]
 
-        scaler = np.array([h, w, h, w], dtype='float32')
-        boxes = boxes * scaler
+        #scaler = np.array([h, w, h, w], dtype='float32')
+        #boxes = boxes * scaler
 
         return boxes, scores

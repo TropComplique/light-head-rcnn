@@ -58,7 +58,7 @@ class Detector:
             probabilities = tf.nn.softmax(self.logits, axis=1)[:, 1:]
             # it has shape [total_num_proposals, num_classes]
 
-        with tf.device('/cpu:0'), tf.name_scope('nms'):
+        with tf.name_scope('nms'):
             boxes, scores, classes, num_boxes = batch_multiclass_non_max_suppression(
                 boxes, probabilities, self.proposals['num_proposals_per_image'],
                 score_threshold, iou_threshold,
@@ -183,7 +183,8 @@ class Detector:
 
                 # i don't need to do nms here,
                 # because i did nms at proposal generation
-                _, indices = tf.nn.top_k(cls_losses, k=params['num_hard_examples'], sorted=False)
+                k = tf.minimum(params['num_hard_examples'], tf.shape(cls_losses)[0])
+                _, indices = tf.nn.top_k(cls_losses, k, sorted=False)
                 hard_loc_losses = tf.gather(loc_losses, indices)
                 hard_cls_losses = tf.gather(cls_losses, indices)
 
