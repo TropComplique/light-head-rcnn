@@ -22,7 +22,7 @@ wider_params = {
 
     'num_steps': 500000,
     'lr_boundaries': [300000, 450000],
-    'lr_values': [7e-4, 7e-5, 7e-6],
+    'lr_values': [8e-4, 8e-5, 8e-6],
 
     # PROPOSAL GENERATION:
 
@@ -31,7 +31,7 @@ wider_params = {
     # a float number
     'before_nms_score_threshold': 0.01,
     # an integer
-    'nms_max_output_size': 700,  # 1000
+    'nms_max_output_size': 1000,
     # a float number
     'proposal_iou_threshold': 0.7,
     # an integer
@@ -41,10 +41,10 @@ wider_params = {
 
     # float numbers, weights for losses
     'alpha': 1.0,  # rpn localization
-    'beta': 5.0,  # rpn classification # 10
+    'beta': 10.0,  # rpn classification
     'gamma': 1.0,  # roi localization
-    'theta': 5.0,  # roi classification # 10
-    
+    'theta': 5.0,  # roi classification
+
     'first_stage_batch_size': 256,
     'positive_fraction': 0.5,
     'num_hard_examples': 256,
@@ -103,7 +103,6 @@ wider_light_params.update({
     'backbone': 'mobilenet',
     'depth_multiplier': 0.5,
     'channels_middle': 64,
-    'before_nms_score_threshold': 0.01,
     'rpn_num_channels': 256,
 })
 

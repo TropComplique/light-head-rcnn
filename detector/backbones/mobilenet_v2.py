@@ -61,7 +61,7 @@ def mobilenet(images, depth_multiplier=1.0):
                 (6, 32, 2), (6, 32, 1), (6, 32, 1),
                 (6, 64, 2), (6, 64, 1), (6, 64, 1), (6, 64, 1),
                 (6, 96, 1), (6, 96, 1), (6, 96, 1),
-                (6, 160, 1), (6, 160, 1), (6, 160, 1),  # first - must be stride 2
+                (6, 160, 1), (6, 160, 1), (6, 160, 1),  # here it differs from the original
                 (6, 320, 1),
             ]
             i = 1
@@ -84,7 +84,6 @@ def mobilenet(images, depth_multiplier=1.0):
 
             final_channels = int(1280 * depth_multiplier) if depth_multiplier > 1.0 else 1280
             second_stage_features = slim.conv2d(x, final_channels, (1, 1), stride=1, scope='Conv_1')
-            # stride 32
 
     return {'block3': rpn_features, 'block4': second_stage_features}
 

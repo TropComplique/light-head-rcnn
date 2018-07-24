@@ -53,25 +53,7 @@ class Pipeline:
         dataset = dataset.apply(tf.contrib.data.batch_and_drop_remainder(batch_size=1))
         dataset = dataset.prefetch(buffer_size=1)
 
-        self.iterator = dataset.make_one_shot_iterator()
         self.dataset = dataset
-
-    def get_batch(self):
-        """
-        Batch size is a static value that equals to 1.
-
-        Returns:
-            features: a dict with the following keys
-                'images': a float tensor with shape [batch_size, height, width, 3].
-                'filenames': a string tensor with shape [batch_size].
-            labels: a dict with the following keys
-                'boxes': a float tensor with shape [batch_size, max_num_boxes, 4].
-                'labels': a float tensor with shape [batch_size, max_num_boxes, 4].
-                'num_boxes': an int tensor with shape [batch_size],
-                    where max_num_boxes = max(num_boxes).
-        """
-        features, labels = self.iterator.get_next()
-        return features, labels
 
     def parse_and_preprocess(self, example_proto):
         """What this function does:
@@ -81,14 +63,12 @@ class Pipeline:
         Returns:
             image: a float tensor with shape [height, width, 3],
                 an RGB image with pixel values in the range [0, 255].
-            filename: a string tensor with shape [].
             boxes: a float tensor with shape [num_boxes, 4],
                 box coordinates are absolute.
             labels: an int tensor with shape [num_boxes].
             num_boxes: an int tensor with shape [].
         """
         features = {
-            'filename': tf.FixedLenFeature([], tf.string),
             'image': tf.FixedLenFeature([], tf.string),
             'ymin': tf.FixedLenSequenceFeature([], tf.float32, allow_missing=True),
             'xmin': tf.FixedLenSequenceFeature([], tf.float32, allow_missing=True),
@@ -131,12 +111,12 @@ class Pipeline:
         scaler = tf.to_float(tf.stack([height, width, height, width]))
         boxes = boxes * scaler
 
+        # it is not needed if batch size = 1
         num_boxes = tf.to_int32(tf.shape(boxes)[0])
-        filename = parsed_features['filename']
 
         # in the format required by tf.estimator,
         # they will be batched later
-        features = {'images': image, 'filenames': filename}
+        features = {'images': image}
         labels = {'boxes': boxes, 'labels': labels, 'num_boxes': num_boxes}
         return features, labels
 

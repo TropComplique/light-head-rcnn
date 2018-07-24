@@ -71,9 +71,7 @@ def model_fn(features, labels, mode, params, config):
 
         with tf.name_scope('evaluator'):
             evaluator = Evaluator(class_names=['face'])
-            eval_metric_ops = evaluator.get_metric_ops(
-                features['filenames'], labels, predictions
-            )
+            eval_metric_ops = evaluator.get_metric_ops(labels, predictions)
 
         return tf.estimator.EstimatorSpec(
             mode, loss=total_loss,
@@ -91,6 +89,7 @@ def model_fn(features, labels, mode, params, config):
         grads_and_vars = optimizer.compute_gradients(total_loss)
         grads_and_vars = [(tf.clip_by_norm(g, 10.0), v) for g, v in grads_and_vars]
         train_op = optimizer.apply_gradients(grads_and_vars, global_step)
+        # train_op = tf.group(train_op)  # WTF!
 
     for g, v in grads_and_vars:
         tf.summary.histogram(v.name[:-2] + '_hist', v)
@@ -100,7 +99,10 @@ def model_fn(features, labels, mode, params, config):
 
 
 def add_weight_decay(weight_decay):
-    weights = [v for v in tf.trainable_variables() if 'weights' in v.name]
+    weights = [
+        v for v in tf.trainable_variables()
+        if 'weights' in v.name and 'depthwise_weights' not in v.name
+    ]
     for w in weights:
         value = tf.multiply(weight_decay, tf.nn.l2_loss(w))
         tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, value)

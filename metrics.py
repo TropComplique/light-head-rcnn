@@ -41,10 +41,9 @@ class Evaluator:
             ]
             self.metrics['mAP'] = np.mean(APs)
 
-    def get_metric_ops(self, image_name, groundtruth, predictions):
+    def get_metric_ops(self, groundtruth, predictions):
         """
         Arguments:
-            image_name: a string tensor with shape [1].
             groundtruth: a dict with the following keys
                 'boxes': a float tensor with shape [1, N, 4].
                 'labels': an int tensor with shape [1, N].
@@ -54,12 +53,14 @@ class Evaluator:
                 'scores': a float tensor with shape [M].
         """
 
-        def update_op_func(image_name, gt_boxes, gt_labels, boxes, labels, scores):
+        def update_op_func(gt_boxes, gt_labels, boxes, labels, scores):
+            image_name = '{}'.format(self.unique_image_id)
+            self.unique_image_id += 1
             self.add_groundtruth(image_name, gt_boxes, gt_labels)
             self.add_detections(image_name, boxes, labels, scores)
 
         tensors = [
-            image_name[0], groundtruth['boxes'][0], groundtruth['labels'][0],
+            groundtruth['boxes'][0], groundtruth['labels'][0],
             predictions['boxes'], predictions['labels'], predictions['scores']
         ]
         update_op = tf.py_func(update_op_func, tensors, [])
@@ -82,10 +83,11 @@ class Evaluator:
             ]
 
             eval_metric_ops = {}
-            for label in range(self.num_classes):
+
+            if self.num_classes == 1:
                 for measure in metric_names:
-                    name = 'metrics/' + measure + '_for_' + self.class_names[label]
-                    value_op = tf.py_func(get_value_func(label, measure), [], tf.float32)
+                    name = 'metrics/' + measure
+                    value_op = tf.py_func(get_value_func(0, measure), [], tf.float32)
                     eval_metric_ops[name] = (value_op, update_op)
 
             if self.num_classes > 1:
@@ -101,6 +103,9 @@ class Evaluator:
 
         # groundtruth boxes are separated by label and by image
         self.groundtruth = {label: {} for label in range(self.num_classes)}
+
+        # this counter will be a name for each image
+        self.unique_image_id = 0
 
     def add_detections(self, image_name, boxes, labels, scores):
         """

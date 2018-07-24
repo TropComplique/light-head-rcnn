@@ -196,7 +196,7 @@ def get_proposals(
 
     # see the original faster-rcnn paper about pruning and clipping
     with tf.name_scope('prune_or_clip_anchors'):
-        
+
         if is_training:
             anchors, valid_indices = prune_outside_window(anchors, window)
             encoded_boxes = tf.gather(encoded_boxes, valid_indices, axis=1)
@@ -206,12 +206,12 @@ def get_proposals(
             # nonzero intersection with the window
             anchors = clip_by_window(anchors, window)
             # do i need to clip here or not?
-    
+
     with tf.name_scope('object_probabilities'):
-        
+
         probabilities = tf.nn.softmax(objectness_scores, axis=2)  # shape [batch_size, num_anchors, 2]
         probabilities = probabilities[:, :, 1]  # shape [batch_size, num_anchors]
-    
+
     boxes = batch_decode(encoded_boxes, anchors)  # shape [batch_size, num_anchors, 4]
 
     boxes_per_image = tf.unstack(boxes, axis=0)
@@ -219,7 +219,7 @@ def get_proposals(
     rois, roi_image_indices, num_proposals = [], [], []
     for n, b, p in zip(range(batch_size), boxes_per_image, probabilities_per_image):
         # `n` - index of an image in the batch
-        
+
         with tf.name_scope('get_proposals_for_image_%d' % n):
 
             b = clip_by_window(b, window)
