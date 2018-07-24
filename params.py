@@ -16,33 +16,35 @@ wider_params = {
     'evaluation_max_dimension': 1200,
 
     # a list of integers
-    'training_min_dimensions': [400, 600, 700, 800, 1000, 1200],
+    'training_min_dimensions': [600, 700, 800, 1000, 1200],
     # an integer or None
     'training_max_dimension': 1400,
 
     'num_steps': 500000,
     'lr_boundaries': [300000, 450000],
-    'lr_values': [6e-4, 6e-5, 6e-6],
+    'lr_values': [7e-4, 7e-5, 7e-6],
 
     # PROPOSAL GENERATION:
 
     # an integer
-    'min_proposal_area': 64,
+    'min_proposal_area': 36,
     # a float number
     'before_nms_score_threshold': 0.01,
     # an integer
-    'nms_max_output_size': 1000,
+    'nms_max_output_size': 700,  # 1000
     # a float number
     'proposal_iou_threshold': 0.7,
+    # an integer
+    'rpn_num_channels': 512,
 
     # LOSS:
 
     # float numbers, weights for losses
     'alpha': 1.0,  # rpn localization
-    'beta': 2.0,  # rpn classification
+    'beta': 5.0,  # rpn classification # 10
     'gamma': 1.0,  # roi localization
-    'theta': 2.0,  # roi classification
-
+    'theta': 5.0,  # roi classification # 10
+    
     'first_stage_batch_size': 256,
     'positive_fraction': 0.5,
     'num_hard_examples': 256,
@@ -57,7 +59,7 @@ wider_params = {
 
     'score_threshold': 0.1,
     'iou_threshold': 0.4,
-    'max_boxes_per_class': 100,
+    'max_boxes_per_class': 150,
 
     # FEATURE EXTRACTOR:
 
@@ -101,7 +103,8 @@ wider_light_params.update({
     'backbone': 'mobilenet',
     'depth_multiplier': 0.5,
     'channels_middle': 64,
-    'scales': [32, 64, 128, 256, 512],
+    'before_nms_score_threshold': 0.01,
+    'rpn_num_channels': 256,
 })
 
 coco_params = wider_params.copy()

@@ -71,8 +71,8 @@ def resnet(images):
                 x = conv2d_same(x, 64, 7, stride=2, scope='conv1')
                 x = slim.max_pool2d(x, [3, 3], stride=2, padding='SAME', scope='pool1')
                 x = stack_units(x, [(64, 1, 1)] * 2 + [(64, 2, 1)], scope='block1')
+                x = stack_units(x, [(128, 1, 1)] * 3 + [(128, 2, 1)], scope='block2')
 
-            x = stack_units(x, [(128, 1, 1)] * 3 + [(128, 2, 1)], scope='block2')
             rpn_features = stack_units(x, [(256, 1, 1)] * 5 + [(256, 1, 2)], scope='block3')
             second_stage_features = stack_units(rpn_features, [(512, 1, 2)] * 3, scope='block4')
 

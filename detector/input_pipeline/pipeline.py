@@ -51,9 +51,7 @@ class Pipeline:
             num_parallel_calls=NUM_PARALLEL_CALLS
         )
         dataset = dataset.apply(tf.contrib.data.batch_and_drop_remainder(batch_size=1))
-        # dataset = dataset.prefetch(buffer_size=1)
-
-        dataset = dataset.prefetch(buffer_size=tf.contrib.data.AUTOTUNE)
+        dataset = dataset.prefetch(buffer_size=1)
 
         self.iterator = dataset.make_one_shot_iterator()
         self.dataset = dataset

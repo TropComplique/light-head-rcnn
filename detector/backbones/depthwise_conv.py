@@ -5,15 +5,16 @@ import tensorflow as tf
 def depthwise_conv(
         x, kernel=3, stride=1, padding='SAME',
         activation_fn=None, normalizer_fn=None,
-        data_format='NHWC', scope='depthwise_conv'):
+        trainable=True, data_format='NHWC', 
+        scope='depthwise_conv'):
 
     with tf.variable_scope(scope):
         assert data_format == 'NHWC'
-        in_channels = x.shape.as_list()[1]
+        in_channels = x.shape[3].value
         W = tf.get_variable(
             'depthwise_weights',
             [kernel, kernel, in_channels, 1],
-            dtype=tf.float32,
+            dtype=tf.float32, trainable=trainable,
             initializer=tf.contrib.layers.xavier_initializer()
         )
         x = tf.nn.depthwise_conv2d(x, W, [1, stride, stride, 1], padding, data_format='NHWC')

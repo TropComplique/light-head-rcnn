@@ -37,10 +37,9 @@ def mobilenet(images, depth_multiplier=1.0):
         for t, c, s in configs:
             x = inverted_residual_block(
                 x, stride=s, expansion_factor=t,
-                output_channels=depth(c) if s == 2 else None,
+                output_channels=depth(c),
                 scope='expanded_conv_%d' % i
             )
-            features[block_name] = x
             i += 1
         return x, i
 
@@ -58,11 +57,11 @@ def mobilenet(images, depth_multiplier=1.0):
 
             # (t, c, s) - like in the original paper (table 2)
             block_configs = [
-                (6, 24, 2), (6, 24, 1)
+                (6, 24, 2), (6, 24, 1),
                 (6, 32, 2), (6, 32, 1), (6, 32, 1),
                 (6, 64, 2), (6, 64, 1), (6, 64, 1), (6, 64, 1),
                 (6, 96, 1), (6, 96, 1), (6, 96, 1),
-                (6, 160, 2), (6, 160, 1), (6, 160, 1),
+                (6, 160, 1), (6, 160, 1), (6, 160, 1),  # first - must be stride 2
                 (6, 320, 1),
             ]
             i = 1
@@ -81,7 +80,7 @@ def mobilenet(images, depth_multiplier=1.0):
             rpn_features, i = stack_blocks(x, i, block_configs[5:12])
             # stride 16
 
-            x, _ = stack_blocks(x, i, block_configs[12:])
+            x, _ = stack_blocks(rpn_features, i, block_configs[12:])
 
             final_channels = int(1280 * depth_multiplier) if depth_multiplier > 1.0 else 1280
             second_stage_features = slim.conv2d(x, final_channels, (1, 1), stride=1, scope='Conv_1')
@@ -90,11 +89,9 @@ def mobilenet(images, depth_multiplier=1.0):
     return {'block3': rpn_features, 'block4': second_stage_features}
 
 
-def inverted_residual_block(x, stride=1, expansion_factor=6, output_channels=None, scope='inverted_residual_block'):
+def inverted_residual_block(x, stride, expansion_factor, output_channels, scope='inverted_residual_block'):
 
-    assert (stride == 1) or (stride == 2 and output_channels is not None)
     in_channels = x.shape[3].value
-    output_channels = output_channels if output_channels is not None else in_channels
     residual = x
 
     with tf.variable_scope(scope):

@@ -89,6 +89,7 @@ def model_fn(features, labels, mode, params, config):
     with tf.variable_scope('optimizer'):
         optimizer = tf.train.MomentumOptimizer(learning_rate, momentum=0.9)
         grads_and_vars = optimizer.compute_gradients(total_loss)
+        grads_and_vars = [(tf.clip_by_norm(g, 10.0), v) for g, v in grads_and_vars]
         train_op = optimizer.apply_gradients(grads_and_vars, global_step)
 
     for g, v in grads_and_vars:

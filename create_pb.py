@@ -1,7 +1,7 @@
 import tensorflow as tf
 import os
 from model import model_fn
-from params import wider_params as params
+from params import wider_light_params as params
 
 
 """
@@ -66,7 +66,6 @@ def convert_to_pb(saved_model_folder):
                 sess, graph.as_graph_def(),
                 output_node_names=keep_nodes
             )
-            print([n.name for n in input_graph_def.node if 'NonMaxSuppression' in n.name])
             output_graph_def = tf.graph_util.remove_training_nodes(
                 input_graph_def, protected_nodes=keep_nodes
             )

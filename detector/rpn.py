@@ -58,7 +58,7 @@ def rpn(x, is_training, image_size, params):
     with tf.variable_scope('rpn'):
         initializer = tf.random_normal_initializer(mean=0.0, stddev=0.01)
         x = slim.conv2d(
-            x, 512, [3, 3],
+            x, params['rpn_num_channels'], [3, 3],
             weights_initializer=initializer, padding='SAME',
             activation_fn=tf.nn.relu, scope='conv'
         )
@@ -195,18 +195,23 @@ def get_proposals(
         objectness_scores = tf.reshape(objectness_scores, [batch_size, -1, 2])
 
     # see the original faster-rcnn paper about pruning and clipping
-    if is_training:
-        anchors, valid_indices = prune_outside_window(anchors, window)
-        encoded_boxes = tf.gather(encoded_boxes, valid_indices, axis=1)
-        objectness_scores = tf.gather(objectness_scores, valid_indices, axis=1)
-    else:
-        # note: it is assumed that all anchors have
-        # nonzero intersection with the window
-        anchors = clip_by_window(anchors, window)
-        # do i need to clip here or not?
-
-    probabilities = tf.nn.softmax(objectness_scores, axis=2)  # shape [batch_size, num_anchors, 2]
-    probabilities = probabilities[:, :, 1]  # shape [batch_size, num_anchors]
+    with tf.name_scope('prune_or_clip_anchors'):
+        
+        if is_training:
+            anchors, valid_indices = prune_outside_window(anchors, window)
+            encoded_boxes = tf.gather(encoded_boxes, valid_indices, axis=1)
+            objectness_scores = tf.gather(objectness_scores, valid_indices, axis=1)
+        else:
+            # note: it is assumed that all anchors have
+            # nonzero intersection with the window
+            anchors = clip_by_window(anchors, window)
+            # do i need to clip here or not?
+    
+    with tf.name_scope('object_probabilities'):
+        
+        probabilities = tf.nn.softmax(objectness_scores, axis=2)  # shape [batch_size, num_anchors, 2]
+        probabilities = probabilities[:, :, 1]  # shape [batch_size, num_anchors]
+    
     boxes = batch_decode(encoded_boxes, anchors)  # shape [batch_size, num_anchors, 4]
 
     boxes_per_image = tf.unstack(boxes, axis=0)
@@ -214,18 +219,22 @@ def get_proposals(
     rois, roi_image_indices, num_proposals = [], [], []
     for n, b, p in zip(range(batch_size), boxes_per_image, probabilities_per_image):
         # `n` - index of an image in the batch
+        
+        with tf.name_scope('get_proposals_for_image_%d' % n):
 
-        b = clip_by_window(b, window)
-        b, p = remove_some_proposals(b, p, min_proposal_area, before_nms_score_threshold)
-        to_keep = tf.image.non_max_suppression(b, p, nms_max_output_size, iou_threshold)
-        b = tf.gather(b, to_keep)
+            b = clip_by_window(b, window)
+            b, p = remove_some_proposals(b, p, min_proposal_area, before_nms_score_threshold)
+            to_keep = tf.image.non_max_suppression(b, p, nms_max_output_size, iou_threshold)
+            b = tf.gather(b, to_keep)
+            k = tf.size(to_keep)
 
-        # because i do "approximate joint training"
-        b = tf.stop_gradient(b)
+            # because i do "approximate joint training"
+            b = tf.stop_gradient(b)
+            k = tf.stop_gradient(k)
 
-        rois.append(b)
-        roi_image_indices.append(tf.fill([tf.size(to_keep)], n))
-        num_proposals.append(tf.size(to_keep))
+            rois.append(b)
+            roi_image_indices.append(tf.fill([k], n))
+            num_proposals.append(k)
 
     proposals = {
         'rois': rois,

@@ -74,6 +74,7 @@ def randomly_crop_image(
         )
         begin, size, window = sample_distorted_bounding_box
         image = tf.slice(image, begin, size)
+        image.set_shape([None, None, 3])
         window = tf.squeeze(window, axis=[0, 1])
 
         # remove boxes that are completely outside the cropped image

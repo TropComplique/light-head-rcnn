@@ -82,7 +82,7 @@ class Detector:
         Returns:
             a dict with four float tensors with shape [].
         """
-
+        
         groundtruth_boxes_list = tf.unstack(groundtruth['boxes'], axis=0)
         groundtruth_labels_list = tf.unstack(groundtruth['labels'], axis=0)
         num_groundtruth_boxes_list = tf.unstack(groundtruth['num_boxes'], axis=0)
@@ -121,16 +121,18 @@ class Detector:
             # get final predictions for each proposal on the image
             encoded_boxes = encoded_boxes_list[i]  # shape [num_proposals_i, num_classes, 4]
             logits = logits_list[i]  # shape [num_proposals_i, num_classes + 1]
+            
+            with tf.name_scope('get_targets_for_image_%d' % i):
+                
+                targets, anchor_matches, proposal_matches = get_training_targets(
+                    self.anchors, proposals,
+                    groundtruth_boxes, groundtruth_labels,
+                    positives_threshold=params['positives_threshold'],
+                    negatives_threshold=params['negatives_threshold'],
+                    second_stage_threshold=params['second_stage_threshold']
+                )
 
-            targets, anchor_matches, proposal_matches = get_training_targets(
-                self.anchors, proposals,
-                groundtruth_boxes, groundtruth_labels,
-                positives_threshold=params['positives_threshold'],
-                negatives_threshold=params['negatives_threshold'],
-                second_stage_threshold=params['second_stage_threshold']
-            )
-
-            with tf.name_scope('rpn_losses_%d' % i):
+            with tf.name_scope('rpn_losses_for_image_%d' % i):
 
                 # whether an anchor is matched
                 is_positive = tf.greater_equal(anchor_matches, 0)
@@ -154,8 +156,17 @@ class Detector:
                     weights=tf.to_float(is_subsampled)
                 )
                 # they have shape [first_stage_batch_size]
-
-            with tf.name_scope('second_stage_losses_%d' % i):
+            
+#             is_foreground = tf.greater_equal(anchor_matches, 0)
+#             is_background = tf.equal(anchor_matches, -1)
+#             ymin, xmin, ymax, xmax = tf.unstack(proposals, axis=1)
+#             h, w = ymax - ymin, xmax - xmin
+#             tf.summary.histogram('foreground_probability', tf.boolean_mask(rpn_objectness_scores[:, 1], is_foreground))
+#             tf.summary.histogram('background_probability', tf.boolean_mask(rpn_objectness_scores[:, 0], is_background))
+#             tf.summary.histogram('box_heights', h)
+#             tf.summary.histogram('box_widths', w)
+    
+            with tf.name_scope('second_stage_losses_for_image_%d' % i):
 
                 encoded_boxes = tf.pad(encoded_boxes, [[0, 0], [1, 0], [0, 0]])
                 # now it has shape [num_proposals_i, num_classes + 1, 4]
@@ -168,7 +179,7 @@ class Detector:
 
                 # whether proposal is matched
                 is_roi_positive = tf.to_float(tf.greater_equal(proposal_matches, 0))
-
+        
                 loc_losses = localization_loss(
                     encoded_boxes, targets['roi_regression'],
                     weights=is_roi_positive
@@ -185,8 +196,8 @@ class Detector:
                 # because i did nms at proposal generation
                 k = tf.minimum(params['num_hard_examples'], tf.shape(cls_losses)[0])
                 _, indices = tf.nn.top_k(cls_losses, k, sorted=False)
-                hard_loc_losses = tf.gather(loc_losses, indices)
-                hard_cls_losses = tf.gather(cls_losses, indices)
+                hard_loc_losses = tf.gather(loc_losses, indices)  # shape [k]
+                hard_cls_losses = tf.gather(cls_losses, indices)  # shape [k]
 
             with tf.name_scope('normalization'):
 
@@ -198,11 +209,13 @@ class Detector:
 
                 normalizer = tf.maximum(tf.reduce_sum(tf.gather(is_roi_positive, indices), axis=0), 1.0)
                 hard_loc_loss = tf.reduce_sum(hard_loc_losses, axis=0) / normalizer
-
-                hard_cls_loss = tf.reduce_mean(hard_cls_losses, axis=0)
-
-            tf.summary.scalar('num_rpn_positives', tf.reduce_sum(tf.to_float(is_positive), axis=0))
-            tf.summary.scalar('num_roi_positives', tf.reduce_sum(tf.gather(is_roi_positive, indices), axis=0))
+                
+                normalizer = tf.maximum(tf.to_float(k), 1.0)  # k can be zero
+                hard_cls_loss = tf.reduce_sum(hard_cls_losses, axis=0) / normalizer
+            
+#             tf.summary.scalar('num_groundtruth_boxes', tf.to_float(N))
+#             tf.summary.scalar('num_rpn_positives', tf.reduce_sum(tf.to_float(is_positive), axis=0))
+#             tf.summary.scalar('num_roi_positives', tf.reduce_sum(tf.gather(is_roi_positive, indices), axis=0))
 
             losses['roi_localization_loss'].append(hard_loc_loss)
             losses['roi_classification_loss'].append(hard_cls_loss)
