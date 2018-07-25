@@ -22,7 +22,7 @@ wider_params = {
 
     'num_steps': 500000,
     'lr_boundaries': [300000, 450000],
-    'lr_values': [8e-4, 8e-5, 8e-6],
+    'lr_values': [3e-4, 3e-5, 3e-6],
 
     # PROPOSAL GENERATION:
 
@@ -76,6 +76,7 @@ wider_params = {
     'k': 15,
     # an integer
     'channels_middle': 256,
+    'fc_layer_size': 2048,
 
     # PS ROI ALIGN POOLING:
 
@@ -104,6 +105,7 @@ wider_light_params.update({
     'depth_multiplier': 0.5,
     'channels_middle': 64,
     'rpn_num_channels': 256,
+    'fc_layer_size': 1024,
 })
 
 coco_params = wider_params.copy()

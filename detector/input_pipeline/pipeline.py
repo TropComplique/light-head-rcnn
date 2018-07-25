@@ -31,7 +31,7 @@ class Pipeline:
             num_examples += num_examples_in_file
         assert num_examples > 0
 
-        # because datasets are big,
+        # because datasets are big
         # we split them into many small pieces (shards)
         dataset = tf.data.Dataset.from_tensor_slices(filenames)
         num_shards = len(filenames)

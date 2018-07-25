@@ -17,6 +17,7 @@ def head(x, rois, roi_image_indices, image_size, params):
         encoded_boxes: a float tensor with shape [total_num_proposals, num_classes, 4].
         logits: a float tensor with shape [total_num_proposals, num_classes + 1].
     """
+
     p, k = params['p'], params['k']
     channels_middle = params['channels_middle']
     num_classes = params['num_classes']
@@ -59,7 +60,7 @@ def head(x, rois, roi_image_indices, image_size, params):
         x = tf.reshape(x, [total_num_proposals, p * p * 10])
 
         x = slim.fully_connected(
-            x, 2048,
+            x, params['fc_layer_size'],
             weights_initializer=tf.random_normal_initializer(mean=0.0, stddev=0.01),
             activation_fn=tf.nn.relu, scope='large_fc'
         )

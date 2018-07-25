@@ -73,10 +73,13 @@ def resnet(images):
                 x = stack_units(x, [(64, 1, 1)] * 2 + [(64, 2, 1)], scope='block1')
                 x = stack_units(x, [(128, 1, 1)] * 3 + [(128, 2, 1)], scope='block2')
 
-            rpn_features = stack_units(x, [(256, 1, 1)] * 5 + [(256, 1, 2)], scope='block3')
-            second_stage_features = stack_units(rpn_features, [(512, 1, 2)] * 3, scope='block4')
+            x = stack_units(x, [(256, 1, 1)] * 5 + [(256, 1, 2)], scope='block3')
+            rpn_features = x
 
-        return {'block3': rpn_features, 'block4': second_stage_features}
+            x = stack_units(x, [(512, 1, 2)] * 3, scope='block4')
+            second_stage_features = x
+
+        return {'rpn_features': rpn_features, 'second_stage_features': second_stage_features}
 
 
 def stack_units(x, config, scope='block'):

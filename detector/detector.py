@@ -137,6 +137,17 @@ class Detector:
                 # whether an anchor is matched
                 is_positive = tf.greater_equal(anchor_matches, 0)
 
+                object_probability = tf.nn.softmax(rpn_objectness_scores, axis=1)
+                tf.summary.histogram(
+                    'positive_probability',
+                    tf.boolean_mask(object_probability[:, 1], is_positive)
+                )
+                is_negative = tf.equal(anchor_matches, -1)
+                tf.summary.histogram(
+                    'negative_probability',
+                    tf.boolean_mask(object_probability[:, 0], is_negative)
+                )
+
                 # whether i can use an anchor when computing loss
                 to_not_ignore = tf.not_equal(anchor_matches, -2)
 
@@ -156,6 +167,11 @@ class Detector:
                     weights=tf.to_float(is_subsampled)
                 )
                 # they have shape [first_stage_batch_size]
+
+                tf.summary.histogram(
+                    'rpn_loc_losses',
+                    tf.boolean_mask(rpn_loc_losses, is_positive)
+                )
 
             with tf.name_scope('second_stage_losses_for_image_%d' % i):
 

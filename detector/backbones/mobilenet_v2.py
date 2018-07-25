@@ -61,7 +61,7 @@ def mobilenet(images, depth_multiplier=1.0):
                 (6, 32, 2), (6, 32, 1), (6, 32, 1),
                 (6, 64, 2), (6, 64, 1), (6, 64, 1), (6, 64, 1),
                 (6, 96, 1), (6, 96, 1), (6, 96, 1),
-                (6, 160, 1), (6, 160, 1), (6, 160, 1),  # here it differs from the original
+                (6, 160, 2), (6, 160, 1), (6, 160, 1),
                 (6, 320, 1),
             ]
             i = 1
@@ -75,17 +75,15 @@ def mobilenet(images, depth_multiplier=1.0):
                     output_channels=depth(16),
                     scope='expanded_conv'
                 )
-                x, i = stack_blocks(x, i, block_configs[0:5])  # block1 and block2
+                x, i = stack_blocks(x, i, block_configs[0:5])
 
-            rpn_features, i = stack_blocks(x, i, block_configs[5:12])
-            # stride 16
-
-            x, _ = stack_blocks(rpn_features, i, block_configs[12:])
+            x, i = stack_blocks(x, i, block_configs[5:12])  # stride 16
+            x, _ = stack_blocks(x, i, block_configs[12:])  # stride 32
 
             final_channels = int(1280 * depth_multiplier) if depth_multiplier > 1.0 else 1280
-            second_stage_features = slim.conv2d(x, final_channels, (1, 1), stride=1, scope='Conv_1')
+            x = slim.conv2d(x, final_channels, (1, 1), stride=1, scope='Conv_1')
 
-    return {'block3': rpn_features, 'block4': second_stage_features}
+    return {'rpn_features': x, 'second_stage_features': x}
 
 
 def inverted_residual_block(x, stride, expansion_factor, output_channels, scope='inverted_residual_block'):
