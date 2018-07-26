@@ -20,9 +20,9 @@ wider_params = {
     # an integer or None
     'training_max_dimension': 1400,
 
-    'num_steps': 500000,
-    'lr_boundaries': [300000, 450000],
-    'lr_values': [3e-4, 3e-5, 3e-6],
+    'num_steps': 400000,
+    'lr_boundaries': [250000, 350000],
+    'lr_values': [1e-3, 1e-4, 1e-5],
 
     # PROPOSAL GENERATION:
 
@@ -41,9 +41,9 @@ wider_params = {
 
     # float numbers, weights for losses
     'alpha': 1.0,  # rpn localization
-    'beta': 10.0,  # rpn classification
-    'gamma': 1.0,  # roi localization
-    'theta': 5.0,  # roi classification
+    'beta': 1.0,  # rpn classification
+    'gamma': 2.0,  # roi localization
+    'theta': 1.0,  # roi classification
 
     'first_stage_batch_size': 256,
     'positive_fraction': 0.5,
@@ -57,7 +57,7 @@ wider_params = {
 
     # FINAL POSTPROCESSING:
 
-    'score_threshold': 0.1,
+    'score_threshold': 0.00001,
     'iou_threshold': 0.4,
     'max_boxes_per_class': 150,
 
@@ -100,8 +100,11 @@ wider_params = {
 wider_light_params = wider_params.copy()
 wider_light_params.update({
     'model_dir': '/home/dan/work/light-head-rcnn/models/run01/',
+    'train_dataset_path': '/home/dan/datasets/WIDER/wider_train_shards/',
+    'val_dataset_path': '/home/dan/datasets/WIDER/wider_val_shards/',
     'pretrained_checkpoint': 'pretrained/mobilenet_v2_0.5_224.ckpt',
     'backbone': 'mobilenet',
+    'aspect_ratios': [1.0],
     'depth_multiplier': 0.5,
     'channels_middle': 64,
     'rpn_num_channels': 256,

@@ -97,11 +97,11 @@ def encode(boxes, anchors):
         wa += EPSILON
         h += EPSILON
         w += EPSILON
-
-        tx = (xcenter - xcenter_a)/wa
+        
         ty = (ycenter - ycenter_a)/ha
-        tw = tf.log(w / wa)
+        tx = (xcenter - xcenter_a)/wa
         th = tf.log(h / ha)
+        tw = tf.log(w / wa)
 
         ty *= SCALE_FACTORS[0]
         tx *= SCALE_FACTORS[1]

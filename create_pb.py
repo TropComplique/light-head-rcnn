@@ -13,7 +13,7 @@ Also it creates a .pb frozen inference graph.
 
 
 OUTPUT_FOLDER = 'export/run00'
-GPU_TO_USE = '1'
+GPU_TO_USE = '0'
 
 WIDTH, HEIGHT = None, None
 BATCH_SIZE = 1

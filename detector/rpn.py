@@ -56,12 +56,12 @@ def rpn(x, is_training, image_size, params):
     num_anchors_per_cell = len(scales) * len(aspect_ratios)
 
     with tf.variable_scope('rpn'):
-        initializer = tf.random_normal_initializer(mean=0.0, stddev=0.01)
         x = slim.conv2d(
             x, params['rpn_num_channels'], [3, 3],
-            weights_initializer=initializer, padding='SAME',
-            activation_fn=tf.nn.relu, scope='conv'
+            padding='SAME', activation_fn=tf.nn.relu, 
+            scope='conv'
         )
+        initializer = tf.truncated_normal_initializer(mean=0.0, stddev=0.001)
         raw_encoded_boxes = slim.conv2d(
             x, num_anchors_per_cell * 4, [1, 1],
             weights_initializer=initializer,

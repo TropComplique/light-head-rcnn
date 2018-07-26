@@ -22,7 +22,7 @@ To use it just run:
 python train.py
 """
 
-GPU_TO_USE = '1'
+GPU_TO_USE = '0'
 
 
 def get_input_fn(is_training):
@@ -64,5 +64,5 @@ val_input_fn = get_input_fn(is_training=False)
 estimator = tf.estimator.Estimator(model_fn, params=params, config=run_config)
 
 train_spec = tf.estimator.TrainSpec(train_input_fn, max_steps=params['num_steps'])
-eval_spec = tf.estimator.EvalSpec(val_input_fn, steps=None, start_delay_secs=2*3600, throttle_secs=2*3600)
+eval_spec = tf.estimator.EvalSpec(val_input_fn, steps=None, start_delay_secs=3600, throttle_secs=3600)
 tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)

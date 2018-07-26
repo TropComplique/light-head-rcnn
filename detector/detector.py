@@ -25,13 +25,15 @@ class Detector:
         # the main computational graph is build here
         features = feature_extractor(images)
         self.proposals, self.rpn_output, self.anchors = rpn(
-            features['block3'], is_training, image_size, params
+            features['rpn_features'], is_training, 
+            image_size, params
         )
-        self.encoded_boxes, self.logits = head(
-            features['block4'], self.proposals['rois'],
-            self.proposals['roi_image_indices'], image_size,
-            params
-        )
+#         self.encoded_boxes, self.logits = head(
+#             features['second_stage_features'], 
+#             self.proposals['rois'],
+#             self.proposals['roi_image_indices'], 
+#             image_size, params
+#         )
 
     def get_predictions(self, score_threshold=0.1, iou_threshold=0.4, max_boxes_per_class=100):
         """Postprocess outputs of the network.
@@ -44,23 +46,31 @@ class Detector:
             where N = num_classes * max_boxes_per_class.
         """
         with tf.name_scope('decoding'):
+ 
+            boxes = batch_decode(self.rpn_output['encoded_boxes'], self.anchors)[0]
+            boxes = tf.expand_dims(boxes, axis=1)
+            # it has shape [num_anchors, 1, 4]
 
-            rois = tf.concat(self.proposals['rois'], axis=0)
-            # shape [total_num_proposals, 4]
+            probabilities = tf.nn.softmax(self.rpn_output['objectness_scores'], axis=1)[0, :, 1]
+            probabilities = tf.expand_dims(probabilities, axis=1)
+            x = tf.stack([tf.shape(probabilities)[0]])
 
-            encoded_boxes = tf.transpose(self.encoded_boxes, perm=[1, 0, 2])
-            # shape [num_classes, total_num_proposals, 4]
+#             rois = tf.concat(self.proposals['rois'], axis=0)
+#             # shape [total_num_proposals, 4]
 
-            boxes = batch_decode(encoded_boxes, rois)
-            boxes = tf.transpose(boxes, perm=[1, 0, 2])
-            # it has shape [total_num_proposals, num_classes, 4]
+#             encoded_boxes = tf.transpose(self.encoded_boxes, perm=[1, 0, 2])
+#             # shape [num_classes, total_num_proposals, 4]
 
-            probabilities = tf.nn.softmax(self.logits, axis=1)[:, 1:]
-            # it has shape [total_num_proposals, num_classes]
+#             boxes = batch_decode(encoded_boxes, rois)
+#             boxes = tf.transpose(boxes, perm=[1, 0, 2])
+#             # it has shape [total_num_proposals, num_classes, 4]
+
+#             probabilities = tf.nn.softmax(self.logits, axis=1)[:, 1:]
+#             # it has shape [total_num_proposals, num_classes]
 
         with tf.name_scope('nms'):
             boxes, scores, classes, num_boxes = batch_multiclass_non_max_suppression(
-                boxes, probabilities, self.proposals['num_proposals_per_image'],
+                boxes, probabilities, x,  # self.proposals['num_proposals_per_image']
                 score_threshold, iou_threshold,
                 max_boxes_per_class
             )
@@ -94,12 +104,12 @@ class Detector:
         num_proposals = self.proposals['num_proposals_per_image']  # shape [batch_size]
         batch_size = num_proposals.shape[0].value
 
-        encoded_boxes_list = tf.split(self.encoded_boxes, num_or_size_splits=num_proposals, axis=0)
-        logits_list = tf.split(self.logits, num_or_size_splits=num_proposals, axis=0)
+#         encoded_boxes_list = tf.split(self.encoded_boxes, num_or_size_splits=num_proposals, axis=0)
+#         logits_list = tf.split(self.logits, num_or_size_splits=num_proposals, axis=0)
 
         # all losses will be collected here
         losses = {
-            'roi_localization_loss': [], 'roi_classification_loss': [],
+            #'roi_localization_loss': [], 'roi_classification_loss': [],
             'rpn_localization_loss': [], 'rpn_classification_loss': []
         }
 
@@ -118,9 +128,9 @@ class Detector:
             # get proposals for the image
             proposals = rois_list[i]  # shape [num_proposals_i, 4]
 
-            # get final predictions for each proposal on the image
-            encoded_boxes = encoded_boxes_list[i]  # shape [num_proposals_i, num_classes, 4]
-            logits = logits_list[i]  # shape [num_proposals_i, num_classes + 1]
+#             # get final predictions for each proposal on the image
+#             encoded_boxes = encoded_boxes_list[i]  # shape [num_proposals_i, num_classes, 4]
+#             logits = logits_list[i]  # shape [num_proposals_i, num_classes + 1]
 
             with tf.name_scope('get_targets_for_image_%d' % i):
 
@@ -172,60 +182,60 @@ class Detector:
                     'rpn_loc_losses',
                     tf.boolean_mask(rpn_loc_losses, is_positive)
                 )
-
-            with tf.name_scope('second_stage_losses_for_image_%d' % i):
-
-                encoded_boxes = tf.pad(encoded_boxes, [[0, 0], [1, 0], [0, 0]])
-                # now it has shape [num_proposals_i, num_classes + 1, 4]
-
-                class_indices = targets['roi_classification']  # shape [num_proposals_i]
-                proposal_indices = tf.range(tf.size(class_indices), dtype=tf.int32)
-                indices = tf.stack([proposal_indices, class_indices], axis=1)  # shape [num_proposals_i, 2]
-                encoded_boxes = tf.gather_nd(encoded_boxes, indices)  # shape [num_proposals_i, 4]
-                # i did this because different classes don't share boxes
-
-                # whether proposal is matched
-                is_roi_positive = tf.to_float(tf.greater_equal(proposal_matches, 0))
-
-                loc_losses = localization_loss(
-                    encoded_boxes, targets['roi_regression'],
-                    weights=is_roi_positive
+                tf.summary.histogram(
+                    'rpn_cls_losses',
+                    tf.boolean_mask(rpn_cls_losses, is_subsampled)
                 )
-                cls_losses = classification_loss(
-                    logits, targets['roi_classification'],
-                    weights=None
-                )
-                # they have shape [num_proposals_i]
 
-            with tf.name_scope('ohem'):
+#             with tf.name_scope('second_stage_losses_for_image_%d' % i):
 
-                # i don't need to do nms here,
-                # because i did nms at proposal generation
-                k = tf.minimum(params['num_hard_examples'], tf.shape(cls_losses)[0])
-                _, indices = tf.nn.top_k(cls_losses, k, sorted=False)
-                hard_loc_losses = tf.gather(loc_losses, indices)  # shape [k]
-                hard_cls_losses = tf.gather(cls_losses, indices)  # shape [k]
+#                 encoded_boxes = tf.pad(encoded_boxes, [[0, 0], [1, 0], [0, 0]])
+#                 # now it has shape [num_proposals_i, num_classes + 1, 4]
+
+#                 class_indices = targets['roi_classification']  # shape [num_proposals_i]
+#                 proposal_indices = tf.range(tf.size(class_indices), dtype=tf.int32)
+#                 indices = tf.stack([proposal_indices, class_indices], axis=1)  # shape [num_proposals_i, 2]
+#                 encoded_boxes = tf.gather_nd(encoded_boxes, indices)  # shape [num_proposals_i, 4]
+#                 # i did this because different classes don't share boxes
+
+#                 # whether proposal is matched
+#                 is_roi_positive = tf.to_float(tf.greater_equal(proposal_matches, 0))
+
+#                 loc_losses = localization_loss(
+#                     encoded_boxes, targets['roi_regression'],
+#                     weights=is_roi_positive
+#                 )
+#                 cls_losses = classification_loss(
+#                     logits, targets['roi_classification'],
+#                     weights=None
+#                 )
+#                 # they have shape [num_proposals_i]
+
+#             with tf.name_scope('ohem'):
+
+#                 # i don't need to do nms here,
+#                 # because i did nms at proposal generation
+#                 k = tf.minimum(params['num_hard_examples'], tf.shape(cls_losses)[0])
+#                 _, indices = tf.nn.top_k(cls_losses, k, sorted=False)
+#                 hard_loc_losses = tf.gather(loc_losses, indices)  # shape [k]
+#                 hard_cls_losses = tf.gather(cls_losses, indices)  # shape [k]
 
             with tf.name_scope('normalization'):
 
-                normalizer = tf.maximum(tf.reduce_sum(tf.to_float(is_positive), axis=0), 1.0)
-                rpn_loc_loss = tf.reduce_sum(rpn_loc_losses, axis=0) / normalizer
-
                 normalizer = tf.maximum(tf.reduce_sum(tf.to_float(is_subsampled), axis=0), 1.0)
+                rpn_loc_loss = tf.reduce_sum(rpn_loc_losses, axis=0) / normalizer
                 rpn_cls_loss = tf.reduce_sum(rpn_cls_losses, axis=0) / normalizer
 
-                normalizer = tf.maximum(tf.reduce_sum(tf.gather(is_roi_positive, indices), axis=0), 1.0)
-                hard_loc_loss = tf.reduce_sum(hard_loc_losses, axis=0) / normalizer
-
-                normalizer = tf.maximum(tf.to_float(k), 1.0)  # k can be zero
-                hard_cls_loss = tf.reduce_sum(hard_cls_losses, axis=0) / normalizer
+#                 normalizer = tf.maximum(tf.to_float(k), 1.0)  # k can be zero
+#                 hard_loc_loss = tf.reduce_sum(hard_loc_losses, axis=0) / normalizer
+#                 hard_cls_loss = tf.reduce_sum(hard_cls_losses, axis=0) / normalizer
 
             tf.summary.scalar('num_groundtruth_boxes', tf.to_float(N))
             tf.summary.scalar('num_rpn_positives', tf.reduce_sum(tf.to_float(is_positive), axis=0))
-            tf.summary.scalar('num_roi_positives', tf.reduce_sum(tf.gather(is_roi_positive, indices), axis=0))
+            #tf.summary.scalar('num_roi_positives', tf.reduce_sum(tf.gather(is_roi_positive, indices), axis=0))
 
-            losses['roi_localization_loss'].append(hard_loc_loss)
-            losses['roi_classification_loss'].append(hard_cls_loss)
+#             losses['roi_localization_loss'].append(hard_loc_loss)
+#             losses['roi_classification_loss'].append(hard_cls_loss)
             losses['rpn_localization_loss'].append(rpn_loc_loss)
             losses['rpn_classification_loss'].append(rpn_cls_loss)
 

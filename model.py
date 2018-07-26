@@ -57,15 +57,15 @@ def model_fn(features, labels, mode, params, config):
     losses = detector.get_losses(labels, params)
     tf.losses.add_loss(params['alpha'] * losses['rpn_localization_loss'])
     tf.losses.add_loss(params['beta'] * losses['rpn_classification_loss'])
-    tf.losses.add_loss(params['gamma'] * losses['roi_localization_loss'])
-    tf.losses.add_loss(params['theta'] * losses['roi_classification_loss'])
+#     tf.losses.add_loss(params['gamma'] * losses['roi_localization_loss'])
+#     tf.losses.add_loss(params['theta'] * losses['roi_classification_loss'])
     total_loss = tf.losses.get_total_loss(add_regularization_losses=True)
 
     tf.summary.scalar('regularization_loss', regularization_loss)
     tf.summary.scalar('rpn_localization_loss', losses['rpn_localization_loss'])
     tf.summary.scalar('rpn_classification_loss', losses['rpn_classification_loss'])
-    tf.summary.scalar('roi_localization_loss', losses['roi_localization_loss'])
-    tf.summary.scalar('roi_classification_loss', losses['roi_classification_loss'])
+#     tf.summary.scalar('roi_localization_loss', losses['roi_localization_loss'])
+#     tf.summary.scalar('roi_classification_loss', losses['roi_classification_loss'])
 
     if mode == tf.estimator.ModeKeys.EVAL:
 
