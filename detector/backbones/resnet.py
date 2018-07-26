@@ -63,6 +63,9 @@ def resnet(images):
     with tf.variable_scope('resnet_v1_50'):
         with slim.arg_scope([slim.conv2d], activation_fn=tf.nn.relu, normalizer_fn=batch_norm):
 
+            # this will be used by the detector
+            features = {}
+
             # a resnet unit is represented by a tuple:
             # (base_depth, stride, rate)
 
@@ -74,12 +77,12 @@ def resnet(images):
                 x = stack_units(x, [(128, 1, 1)] * 3 + [(128, 2, 1)], scope='block2')
 
             x = stack_units(x, [(256, 1, 1)] * 5 + [(256, 1, 2)], scope='block3')
-            rpn_features = x
+            features['rpn_features'] = x
 
             x = stack_units(x, [(512, 1, 2)] * 3, scope='block4')
-            second_stage_features = x
+            features['second_stage_features'] = x
 
-        return {'rpn_features': rpn_features, 'second_stage_features': second_stage_features}
+        return features
 
 
 def stack_units(x, config, scope='block'):

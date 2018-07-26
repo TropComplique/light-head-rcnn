@@ -29,7 +29,7 @@ wider_params = {
     # an integer
     'min_proposal_area': 36,
     # a float number
-    'before_nms_score_threshold': 0.01,
+    'before_nms_score_threshold': 1e-6,
     # an integer
     'nms_max_output_size': 1000,
     # a float number
@@ -57,7 +57,7 @@ wider_params = {
 
     # FINAL POSTPROCESSING:
 
-    'score_threshold': 0.00001,
+    'score_threshold': 0.01,
     'iou_threshold': 0.4,
     'max_boxes_per_class': 150,
 
@@ -105,6 +105,8 @@ wider_light_params.update({
     'pretrained_checkpoint': 'pretrained/mobilenet_v2_0.5_224.ckpt',
     'backbone': 'mobilenet',
     'aspect_ratios': [1.0],
+    'scales': [32, 64, 128, 256, 512],
+    'anchor_stride': (32, 32),
     'depth_multiplier': 0.5,
     'channels_middle': 64,
     'rpn_num_channels': 256,
