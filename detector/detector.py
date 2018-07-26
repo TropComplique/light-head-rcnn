@@ -72,7 +72,7 @@ class Detector:
 
         with tf.name_scope('nms'):
             boxes, scores, classes, num_boxes = batch_multiclass_non_max_suppression(
-                boxes, probabilities, self.proposals['num_proposals_per_image']
+                boxes, probabilities, self.proposals['num_proposals_per_image'],
                 score_threshold, iou_threshold,
                 max_boxes_per_class
             )
