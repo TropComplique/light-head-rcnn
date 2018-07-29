@@ -1,7 +1,7 @@
 
 wider_params = {
 
-    'model_dir': '/home/dan/work/light-head-rcnn/models/run00/',
+    'model_dir': '/home/dan/work/light-head-rcnn/models/run04/',
     'train_dataset_path': '/mnt/datasets/dan/wider_train_shards/',
     'val_dataset_path': '/mnt/datasets/dan/wider_val_shards/',
     'pretrained_checkpoint': 'pretrained/resnet_v1_50.ckpt',
@@ -31,11 +31,11 @@ wider_params = {
     # a float number
     'before_nms_score_threshold': 1e-6,
     # an integer
-    'nms_max_output_size': 1000,
+    'nms_max_output_size': 200,  # 1000 -training
     # a float number
     'proposal_iou_threshold': 0.7,
     # an integer
-    'rpn_num_channels': 512,
+    'rpn_num_channels': 128,  # 512
 
     # LOSS:
 
@@ -75,8 +75,8 @@ wider_params = {
     # an integer
     'k': 15,
     # an integer
-    'channels_middle': 256,
-    'fc_layer_size': 2048,
+    'channels_middle': 64,  # 256
+    'fc_layer_size': 512,  # 2048
 
     # PS ROI ALIGN POOLING:
 
@@ -90,7 +90,7 @@ wider_params = {
     # a list of integers
     'scales': [16, 32, 64, 128, 256, 512],
     # a list of float numbers
-    'aspect_ratios': [0.5, 1.0, 2.0],
+    'aspect_ratios': [1.0],
     # a tuple of integers
     'anchor_stride': (16, 16),
     # a tuple of integers
@@ -99,18 +99,18 @@ wider_params = {
 
 wider_light_params = wider_params.copy()
 wider_light_params.update({
-    'model_dir': '/home/dan/work/light-head-rcnn/models/run01/',
-    'train_dataset_path': '/home/dan/datasets/WIDER/wider_train_shards/',
-    'val_dataset_path': '/home/dan/datasets/WIDER/wider_val_shards/',
-    'pretrained_checkpoint': 'pretrained/mobilenet_v2_0.5_224.ckpt',
+    'model_dir': '/home/dan/work/light-head-rcnn/models/run06/',
+#     'train_dataset_path': '/home/dan/datasets/WIDER/wider_train_shards/',
+#     'val_dataset_path': '/home/dan/datasets/WIDER/wider_val_shards/',
+    'pretrained_checkpoint': 'pretrained/mobilenet_v2_0.75_224.ckpt',
     'backbone': 'mobilenet',
     'aspect_ratios': [1.0],
-    'scales': [32, 64, 128, 256, 512],
-    'anchor_stride': (32, 32),
-    'depth_multiplier': 0.5,
+    'scales': [16, 32, 64, 128, 256, 512],
+    'anchor_stride': (16, 16),
+    'depth_multiplier': 0.75,
     'channels_middle': 64,
-    'rpn_num_channels': 256,
-    'fc_layer_size': 1024,
+    'rpn_num_channels': 128,
+    'fc_layer_size': 512,
 })
 
 coco_params = wider_params.copy()

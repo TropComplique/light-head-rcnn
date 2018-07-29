@@ -1,7 +1,9 @@
 import tensorflow as tf
 import os
 from model import model_fn
-from params import wider_light_params as params
+from detector.input_pipeline.pipeline import resize_keeping_aspect_ratio
+#from params import wider_light_params as params
+from params import wider_params as params
 
 
 """
@@ -37,7 +39,8 @@ estimator = tf.estimator.Estimator(model_fn, params=params, config=run_config)
 
 def serving_input_receiver_fn():
     images = tf.placeholder(dtype=tf.uint8, shape=[BATCH_SIZE, None, None, 3], name='images')
-    features = {'images': tf.to_float(images)}
+    i = resize_keeping_aspect_ratio(images[0], min_dimension=800, max_dimension=1200)
+    features = {'images': tf.to_float(tf.expand_dims(i, 0)), 'size': tf.shape(images)}
     return tf.estimator.export.ServingInputReceiver(features, {'images': images})
 
 

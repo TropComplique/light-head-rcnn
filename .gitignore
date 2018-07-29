@@ -5,3 +5,6 @@ pretrained/
 models/
 export/
 *.pb
+*.jpg
+*.zip
+

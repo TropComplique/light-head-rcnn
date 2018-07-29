@@ -39,6 +39,10 @@ def model_fn(features, labels, mode, params, config):
 
     if mode == tf.estimator.ModeKeys.PREDICT:
         # this is required for exporting a savedmodel
+        h, w = tf.to_float(features['size'][1]), tf.to_float(features['size'][2])
+        s = tf.to_float(tf.shape(features['images']))
+        scaler = tf.stack([h/s[1], w/s[2], h/s[1], w/s[2]])
+        predictions['boxes'] = scaler * predictions['boxes']
         export_outputs = tf.estimator.export.PredictOutput({
             name: tf.identity(tensor, name)
             for name, tensor in predictions.items()

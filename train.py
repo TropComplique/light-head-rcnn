@@ -4,7 +4,7 @@ from model import model_fn
 from detector.input_pipeline import Pipeline
 
 # to train a face detector use this:
-# from params import wider_params as params
+#from params import wider_params as params
 
 # to train an object detector on coco use this:
 # from params import coco_params as params
