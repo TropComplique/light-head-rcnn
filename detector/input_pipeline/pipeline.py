@@ -50,6 +50,7 @@ class Pipeline:
             self.parse_and_preprocess,
             num_parallel_calls=NUM_PARALLEL_CALLS
         )
+        # we want batches with static first dimension:
         dataset = dataset.apply(tf.contrib.data.batch_and_drop_remainder(batch_size=1))
         dataset = dataset.prefetch(buffer_size=1)
 
@@ -62,7 +63,7 @@ class Pipeline:
 
         Returns:
             image: a float tensor with shape [height, width, 3],
-                an RGB image with pixel values in the range [0, 255].
+                an RGB image with pixel values in the range [0, 1].
             boxes: a float tensor with shape [num_boxes, 4],
                 box coordinates are absolute.
             labels: an int tensor with shape [num_boxes].
@@ -103,12 +104,9 @@ class Pipeline:
             if min_dimension is not None:
                 image = resize_keeping_aspect_ratio(image, min_dimension, max_dimension)
 
-        # convert to [0, 255] range
-        image = 255.0 * image
-
         # convert to absolute coordinates
         height, width = tf.shape(image)[0], tf.shape(image)[1]
-        scaler = tf.to_float(tf.stack([height, width, height, width]))
+        scaler = tf.to_float(tf.stack([height - 1, width - 1, height - 1, width - 1]))
         boxes = boxes * scaler
 
         # it is not needed if batch size = 1
@@ -128,14 +126,14 @@ class Pipeline:
             image, boxes, labels, probability=0.1,
             min_object_covered=0.9,
             aspect_ratio_range=(0.5, 2.0),
-            area_range=(0.4, 0.9),
+            area_range=(0.4, 0.8),
             overlap_thresh=0.3
         )
 
         # note that color augmentations are very slow!
-        image = random_color_manipulations(image, probability=0.05, grayscale_probability=0.05)
+        image = random_color_manipulations(image, probability=0.1, grayscale_probability=0.05)
 
-        image = random_pixel_value_scale(image, minval=0.85, maxval=1.15, probability=0.05)
+        image = random_pixel_value_scale(image, minval=0.8, maxval=1.2, probability=0.1)
         boxes = random_jitter_boxes(boxes, ratio=0.01)
         image, boxes = random_flip_left_right(image, boxes)
 

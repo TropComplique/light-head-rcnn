@@ -41,14 +41,14 @@ def resnet(images):
 
     Arguments:
         images: a float tensor with shape [batch_size, image_height, image_width, 3],
-            it represents RGB images with pixel values in range [0, 255].
+            it represents RGB images with pixel values in range [0, 1].
     Returns:
         a dict of with two float tensors.
     """
 
     with tf.name_scope('standardize'):
         channel_means = tf.constant([123.15163, 115.902885, 103.06262], dtype=tf.float32)
-        x = images - channel_means
+        x = (255.0 * images) - channel_means
 
     def batch_norm(x):
         x = tf.layers.batch_normalization(
@@ -76,7 +76,6 @@ def resnet(images):
                 x = stack_units(x, [(64, 1, 1)] * 2 + [(64, 2, 1)], scope='block1')
 
             x = stack_units(x, [(128, 1, 1)] * 3 + [(128, 2, 1)], scope='block2')
-
             x = stack_units(x, [(256, 1, 1)] * 5 + [(256, 1, 2)], scope='block3')
             features['rpn_features'] = x
 

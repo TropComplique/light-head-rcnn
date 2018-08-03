@@ -17,7 +17,7 @@ def multiclass_non_max_suppression(
             maximum number of retained boxes per class.
     Returns:
         selected_boxes: a float tensor with shape [M, 4],
-            where 0 <= M <= N.
+            where 0 <= M <= max_boxes_per_class * num_classes.
         selected_scores: a float tensor with shape [M].
         selected_classes: an int tensor with shape [M].        .
     """

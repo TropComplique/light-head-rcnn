@@ -1,6 +1,6 @@
 import io
 import os
-import PIL.Image
+from PIL import Image
 import tensorflow as tf
 import json
 import shutil
@@ -8,7 +8,6 @@ import random
 import math
 import argparse
 from tqdm import tqdm
-import sys
 
 
 """
@@ -26,6 +25,9 @@ Example of a json annotation (with filename "132416.json"):
   "filename": "132416.jpg",
   "size": {"depth": 3, "width": 1920, "height": 1080}
 }
+
+Labels text file contains a list of all label names.
+One label name per line. Number of line - label integer encoding.
 
 Example of use:
 python create_tfrecords.py \
@@ -69,19 +71,24 @@ def dict_to_tf_example(annotation, image_dir, label_encoder):
 
     # check image format
     encoded_jpg_io = io.BytesIO(encoded_jpg)
-    image = PIL.Image.open(encoded_jpg_io)
-    assert image.format == 'JPEG'
+    image = Image.open(encoded_jpg_io)
+    if image.mode != 'RGB':
+        print('non rgb image:', image_name)
+        rgb_image = np.stack(3*[np.array(image)], axis=2)
+        encoded_jpg = to_jpeg_bytes(rgb_image)
+        image = Image.fromarray(rgb_image)
+    if image.format != 'JPEG':
+        print('non jpeg image:', image_name)
+        encoded_jpg = to_jpeg_bytes(np.array(image))
 
     width = int(annotation['size']['width'])
     height = int(annotation['size']['height'])
-    assert width > 0 and height > 0
+    assert width > 1 and height > 1
     assert image.size[0] == width and image.size[1] == height
     ymin, xmin, ymax, xmax, labels = [], [], [], [], []
 
-    just_name = image_name[:-4] if image_name.endswith('.jpg') else image_name[:-5]
-    annotation_name = just_name + '.json'
     if len(annotation['object']) == 0:
-        print(annotation_name, 'is without any objects!')
+        print(image_name, 'is without any objects!')
 
     for obj in annotation['object']:
 
@@ -107,7 +114,6 @@ def dict_to_tf_example(annotation, image_dir, label_encoder):
         labels.append(label)
 
     example = tf.train.Example(features=tf.train.Features(feature={
-        'filename': _bytes_feature(image_name.encode()),
         'image': _bytes_feature(encoded_jpg),
         'xmin': _float_list_feature(xmin),
         'xmax': _float_list_feature(xmax),
@@ -128,6 +134,13 @@ def _float_list_feature(value):
 
 def _int64_list_feature(value):
     return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
+
+
+def to_jpeg_bytes(array):
+    image = Image.fromarray(array)
+    tmp = io.BytesIO()
+    image.save(tmp, format='jpeg')
+    return tmp.getvalue()
 
 
 def main():
@@ -176,7 +189,8 @@ def main():
             num_examples_written = 0
             writer.close()
 
-    if num_examples_written != shard_size and num_examples % num_shards != 0:
+    # this happens if num_examples % num_shards != 0
+    if num_examples_written != 0:
         writer.close()
 
     print('Result is here:', ARGS.output)

@@ -12,7 +12,7 @@ class Detector:
         """
         Arguments:
             images: a float tensor with shape [batch_size, image_height, image_width, 3],
-                it represents RGB images with pixel values in range [0, 255].
+                it represents RGB images with pixel values in range [0, 1].
             feature_extractor: it takes images and returns a dict with float tensors.
             is_training: a boolean.
             params: a dict.
@@ -38,24 +38,14 @@ class Detector:
     def get_predictions(self, score_threshold=0.1, iou_threshold=0.4, max_boxes_per_class=100):
         """Postprocess outputs of the network.
         Returns:
-            boxes: a float tensor with shape [batch_size, N, 4].
-            labels: an int tensor with shape [batch_size, N].
-            scores: a float tensor with shape [batch_size, N].
-            num_boxes: an int tensor with shape [batch_size], it
+            boxes: a float tensor with shape [N, 4],
+                where 0 <= N <= num_classes * max_boxes_per_class * batch_size.
+            labels: an int tensor with shape [N].
+            scores: a float tensor with shape [N].
+            num_boxes_per_image: an int tensor with shape [batch_size], it
                 represents the number of detections on an image.
-            where N = num_classes * max_boxes_per_class.
         """
         with tf.name_scope('decoding'):
-
-            # boxes = batch_decode(self.rpn_output['encoded_boxes'], self.anchors)
-            # boxes = boxes[0]  # shape [num_anchors, 4]
-            # boxes = tf.expand_dims(boxes, axis=1)  # [num_anchors, 1, 4]
-            #
-            # probabilities = tf.nn.softmax(self.rpn_output['objectness_scores'], axis=2)
-            # # shape [batch_size, num_anchors, 2]
-            # probabilities = probabilities[0, :, 1]  # shape [num_anchors]
-            # probabilities = tf.expand_dims(probabilities, axis=1)  # shape [num_anchors, 1]
-            # num_proposals_per_image = tf.stack([tf.shape(probabilities)[0]])
 
             rois = tf.concat(self.proposals['rois'], axis=0)
             # shape [total_num_proposals, 4]
@@ -134,60 +124,40 @@ class Detector:
             encoded_boxes = encoded_boxes_list[i]  # shape [num_proposals_i, num_classes, 4]
             logits = logits_list[i]  # shape [num_proposals_i, num_classes + 1]
 
-            with tf.name_scope('get_targets_for_image_%d' % i):
-
-                targets, anchor_matches, proposal_matches = get_training_targets(
-                    self.anchors, proposals,
-                    groundtruth_boxes, groundtruth_labels,
-                    positives_threshold=params['positives_threshold'],
-                    negatives_threshold=params['negatives_threshold'],
-                    second_stage_threshold=params['second_stage_threshold']
-                )
+            targets, anchor_matches, proposal_matches = get_training_targets(
+                self.anchors, proposals,
+                groundtruth_boxes, groundtruth_labels,
+                positives_threshold=params['positives_threshold'],
+                negatives_threshold=params['negatives_threshold'],
+                second_stage_threshold=params['second_stage_threshold']
+            )
 
             with tf.name_scope('rpn_losses_for_image_%d' % i):
 
                 # whether an anchor is matched
-                is_positive = tf.greater_equal(anchor_matches, 0)
-
-                # object_probability = tf.nn.softmax(rpn_objectness_scores, axis=1)
-                # tf.summary.histogram(
-                #     'positive_probability',
-                #     tf.boolean_mask(object_probability[:, 1], is_positive)
-                # )
-                # is_negative = tf.equal(anchor_matches, -1)
-                # tf.summary.histogram(
-                #     'negative_probability',
-                #     tf.boolean_mask(object_probability[:, 0], is_negative)
-                # )
+                is_positive_anchor = tf.greater_equal(anchor_matches, 0)
 
                 # whether i can use an anchor when computing loss
                 to_not_ignore = tf.not_equal(anchor_matches, -2)
 
-                is_subsampled = positive_negative_subsample(
-                    to_not_ignore, is_positive,
+                is_chosen_anchor = positive_negative_subsample(
+                    to_not_ignore, is_positive_anchor,
                     batch_size=params['first_stage_batch_size'],
                     positive_fraction=params['positive_fraction']
                 )  # shape [num_anchors]
-                is_positive = tf.logical_and(is_subsampled, is_positive)
+                is_positive_chosen_anchor = tf.logical_and(
+                    is_chosen_anchor, is_positive_anchor
+                )
 
                 rpn_loc_losses = localization_loss(
                     rpn_encoded_boxes, targets['rpn_regression'],
-                    weights=tf.to_float(is_positive)
+                    weights=tf.to_float(is_positive_chosen_anchor)
                 )
                 rpn_cls_losses = classification_loss(
                     rpn_objectness_scores, tf.to_int32(is_positive),
-                    weights=tf.to_float(is_subsampled)
+                    weights=tf.to_float(is_chosen_anchor)
                 )
                 # they have shape [first_stage_batch_size]
-
-                # tf.summary.histogram(
-                #     'rpn_loc_losses',
-                #     tf.boolean_mask(rpn_loc_losses, is_positive)
-                # )
-                # tf.summary.histogram(
-                #     'rpn_cls_losses',
-                #     tf.boolean_mask(rpn_cls_losses, is_subsampled)
-                # )
 
             with tf.name_scope('second_stage_losses_for_image_%d' % i):
 
@@ -216,15 +186,15 @@ class Detector:
             with tf.name_scope('ohem'):
 
                 # i don't need to do nms here,
-                # because i did nms at proposal generation
+                # because i did nms at proposal generation stage
                 k = tf.minimum(params['num_hard_examples'], tf.shape(cls_losses)[0])
-                _, indices = tf.nn.top_k(cls_losses, k, sorted=False)
-                hard_loc_losses = tf.gather(loc_losses, indices)  # shape [k]
-                hard_cls_losses = tf.gather(cls_losses, indices)  # shape [k]
+                _, hard_rois_indices = tf.nn.top_k(cls_losses, k, sorted=False)
+                hard_loc_losses = tf.gather(loc_losses, hard_rois_indices)  # shape [k]
+                hard_cls_losses = tf.gather(cls_losses, hard_rois_indices)  # shape [k]
 
             with tf.name_scope('normalization'):
 
-                normalizer = tf.maximum(tf.reduce_sum(tf.to_float(is_subsampled), axis=0), 1.0)
+                normalizer = tf.maximum(tf.reduce_sum(tf.to_float(is_chosen_anchor), axis=0), 1.0)
                 rpn_loc_loss = tf.reduce_sum(rpn_loc_losses, axis=0) / normalizer
                 rpn_cls_loss = tf.reduce_sum(rpn_cls_losses, axis=0) / normalizer
 
@@ -233,8 +203,10 @@ class Detector:
                 hard_cls_loss = tf.reduce_sum(hard_cls_losses, axis=0) / normalizer
 
             tf.summary.scalar('num_groundtruth_boxes', tf.to_float(N))
-            tf.summary.scalar('num_rpn_positives', tf.reduce_sum(tf.to_float(is_positive), axis=0))
-            tf.summary.scalar('num_roi_positives', tf.reduce_sum(tf.gather(is_roi_positive, indices), axis=0))
+            tf.summary.scalar('num_rpn_positives', tf.reduce_sum(tf.to_float(is_positive_anchor), axis=0))
+            tf.summary.scalar('num_roi_positives', tf.reduce_sum(is_roi_positive, axis=0))
+            num_hard_roi_positives = tf.reduce_sum(tf.gather(is_roi_positive, hard_rois_indices), axis=0)
+            tf.summary.scalar('num_hard_roi_positives', num_hard_roi_positives)
 
             losses['roi_localization_loss'].append(hard_loc_loss)
             losses['roi_classification_loss'].append(hard_cls_loss)

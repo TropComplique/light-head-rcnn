@@ -21,8 +21,7 @@ class FaceDetector:
         self.input_image = graph.get_tensor_by_name('import/images:0')
         self.output_ops = [
             graph.get_tensor_by_name('import/boxes:0'),
-            graph.get_tensor_by_name('import/scores:0'),
-            graph.get_tensor_by_name('import/num_boxes_per_image:0'),
+            graph.get_tensor_by_name('import/scores:0')
         ]
 
         gpu_options = tf.GPUOptions(
@@ -45,10 +44,9 @@ class FaceDetector:
 
         Note that box coordinates are in the order: ymin, xmin, ymax, xmax!
         """
-        h, w, _ = image.shape
-        image = np.expand_dims(image, 0)
-        feed_dict = {self.input_image: image}
-        boxes, scores, _ = self.sess.run(self.output_ops, feed_dict)
+
+        feed_dict = {self.input_image: np.expand_dims(image, 0)}
+        boxes, scores = self.sess.run(self.output_ops, feed_dict)
 
         to_keep = scores > score_threshold
         boxes = boxes[to_keep]

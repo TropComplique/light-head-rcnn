@@ -39,7 +39,7 @@ def head(x, rois, roi_image_indices, image_size, params):
     with tf.name_scope('position_sensitive_roi_align'):
         rois = tf.concat(rois, axis=0)  # shape [total_num_proposals, 4]
 
-        # to normalized coordinates
+        # convert to normalized coordinates
         image_width, image_height = image_size
         scaler = tf.to_float(tf.stack([
             image_height - 1, image_width - 1,
@@ -49,8 +49,8 @@ def head(x, rois, roi_image_indices, image_size, params):
 
         x = position_sensitive_roi_align_pooling(
             x, rois, roi_image_indices,
-            crop_size=params['crop_size'],
-            num_spatial_bins=params['num_spatial_bins']
+            crop_size=(2*p, 2*p),  # (14, 14)
+            num_spatial_bins=(p, p)  # (7, 7)
         )  # shape [total_num_proposals, p * p, 10]
 
     with tf.variable_scope('fc_layers'):

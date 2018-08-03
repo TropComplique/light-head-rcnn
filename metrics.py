@@ -15,13 +15,13 @@ using the official evaluation scripts.
 class Evaluator:
     """It creates ops like in tf.metrics API."""
 
-    def __init__(self, class_names):
+    def __init__(self, num_classes):
         """
         Arguments:
-            class_names: a list of strings.
+            num_classes: an integer.
         """
-        self.num_classes = len(class_names)
-        self.class_names = class_names
+        assert num_classes > 0
+        self.num_classes = num_classes
         self.initialize()
 
     def evaluate(self, iou_threshold=0.5):
@@ -104,7 +104,7 @@ class Evaluator:
         # groundtruth boxes are separated by label and by image
         self.groundtruth = {label: {} for label in range(self.num_classes)}
 
-        # this counter will be a name for each image
+        # i will use this counter as an unique image identifier
         self.unique_image_id = 0
 
     def add_detections(self, image_name, boxes, labels, scores):

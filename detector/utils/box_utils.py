@@ -97,7 +97,7 @@ def encode(boxes, anchors):
         wa += EPSILON
         h += EPSILON
         w += EPSILON
-        
+
         ty = (ycenter - ycenter_a)/ha
         tx = (xcenter - xcenter_a)/wa
         th = tf.log(h / ha)

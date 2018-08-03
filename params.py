@@ -1,11 +1,10 @@
 
 wider_params = {
 
-    'model_dir': '/home/dan/work/light-head-rcnn/models/run04/',
+    'model_dir': '/home/dan/work/light-head-rcnn/models/run00/',
     'train_dataset_path': '/mnt/datasets/dan/wider_train_shards/',
     'val_dataset_path': '/mnt/datasets/dan/wider_val_shards/',
     'pretrained_checkpoint': 'pretrained/resnet_v1_50.ckpt',
-    'labels': '/home/dan/work/light-head-rcnn/data/wider_labels.txt',
     'num_classes': 1,
 
     # IMAGE SIZES:
@@ -31,11 +30,11 @@ wider_params = {
     # a float number
     'before_nms_score_threshold': 1e-6,
     # an integer
-    'nms_max_output_size': 200,  # 1000 -training
+    'nms_max_output_size': 1000,
     # a float number
     'proposal_iou_threshold': 0.7,
     # an integer
-    'rpn_num_channels': 128,  # 512
+    'rpn_num_channels': 128,
 
     # LOSS:
 
@@ -51,7 +50,7 @@ wider_params = {
 
     # BOX MATCHING:
 
-    'positives_threshold': 0.5,  # or 0.7
+    'positives_threshold': 0.5,
     'negatives_threshold': 0.3,
     'second_stage_threshold': 0.5,
 
@@ -64,26 +63,18 @@ wider_params = {
     # FEATURE EXTRACTOR:
 
     'backbone': 'resnet',  # 'resnet' or 'mobilenet'
-    # a float number, relevant only for mobilenet
-    'depth_multiplier': 1.0,
+    'depth_multiplier': 1.0,  # a float number, relevant only for mobilenet
     'weight_decay': 1e-4,
 
     # THE HEAD:
 
-    # an integer
+    # an integer, ps roi align pooling
     'p': 7,
     # an integer
     'k': 15,
     # an integer
-    'channels_middle': 64,  # 256
-    'fc_layer_size': 512,  # 2048
-
-    # PS ROI ALIGN POOLING:
-
-    # a tuple of integers (crop_height, crop_width)
-    'crop_size': (14, 14),
-    # a tuple of integers (spatial_bins_y, spatial_bins_x)
-    'num_spatial_bins': (7, 7),
+    'channels_middle': 64,
+    'fc_layer_size': 512,
 
     # ANCHOR GENERATION:
 
@@ -99,18 +90,13 @@ wider_params = {
 
 wider_light_params = wider_params.copy()
 wider_light_params.update({
-    'model_dir': '/home/dan/work/light-head-rcnn/models/run06/',
-#     'train_dataset_path': '/home/dan/datasets/WIDER/wider_train_shards/',
-#     'val_dataset_path': '/home/dan/datasets/WIDER/wider_val_shards/',
+    'model_dir': '/home/dan/work/light-head-rcnn/models/run01/',
     'pretrained_checkpoint': 'pretrained/mobilenet_v2_0.75_224.ckpt',
     'backbone': 'mobilenet',
-    'aspect_ratios': [1.0],
-    'scales': [16, 32, 64, 128, 256, 512],
-    'anchor_stride': (16, 16),
     'depth_multiplier': 0.75,
-    'channels_middle': 64,
+    'channels_middle': 32,
     'rpn_num_channels': 128,
-    'fc_layer_size': 512,
+    'fc_layer_size': 256,
 })
 
 coco_params = wider_params.copy()
@@ -127,4 +113,7 @@ coco_params.update({
     'weight_decay': 1e-4,
     'channels_middle': 64,
     'scales': [32, 64, 128, 256, 512],
+    'rpn_num_channels': 256,
+    'channels_middle': 64,
+    'fc_layer_size': 1024,
 })

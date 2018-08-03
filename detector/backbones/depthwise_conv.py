@@ -5,7 +5,7 @@ import tensorflow as tf
 def depthwise_conv(
         x, kernel=3, stride=1, padding='SAME',
         activation_fn=None, normalizer_fn=None,
-        trainable=True, data_format='NHWC', 
+        trainable=True, data_format='NHWC',
         scope='depthwise_conv'):
 
     with tf.variable_scope(scope):

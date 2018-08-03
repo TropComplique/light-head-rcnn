@@ -13,7 +13,7 @@ def mobilenet(images, depth_multiplier=1.0):
 
     Arguments:
         images: a float tensor with shape [batch_size, image_height, image_width, 3],
-            a batch of RGB images with pixel values in the range [0, 255].
+            a batch of RGB images with pixel values in the range [0, 1].
         depth_multiplier: a float number, multiplier for the number of filters in a layer.
     Returns:
         a dict with float tensors.
@@ -44,7 +44,7 @@ def mobilenet(images, depth_multiplier=1.0):
         return x, i
 
     with tf.name_scope('standardize_input'):
-        x = ((2.0 / 255.0) * images) - 1.0
+        x = (2.0 * images) - 1.0
 
     with tf.variable_scope('MobilenetV2'):
         params = {
@@ -61,7 +61,10 @@ def mobilenet(images, depth_multiplier=1.0):
                 (6, 32, 2), (6, 32, 1), (6, 32, 1),
                 (6, 64, 2), (6, 64, 1), (6, 64, 1), (6, 64, 1),
                 (6, 96, 1), (6, 96, 1), (6, 96, 1),
-                (6, 160, 1), (6, 160, 1), (6, 160, 1),  # stride change
+
+                # note that in the original stride = 2 in the first unit here:
+                (6, 160, 1), (6, 160, 1), (6, 160, 1),
+
                 (6, 320, 1),
             ]
 
@@ -74,13 +77,12 @@ def mobilenet(images, depth_multiplier=1.0):
                     output_channels=depth(16),
                     scope='expanded_conv'
                 )
-            x, i = stack_blocks(x, 1, block_configs[0:5])
+                x, i = stack_blocks(x, 1, block_configs[0:2])
 
-            rpn_features, i = stack_blocks(x, i, block_configs[5:12])  # stride 16
-            x, _ = stack_blocks(rpn_features, i, block_configs[12:])  # stride 32
-
+            rpn_features, i = stack_blocks(x, i, block_configs[2:12])  # stride 16
+            x, _ = stack_blocks(rpn_features, i, block_configs[12:])
             final_channels = int(1280 * depth_multiplier) if depth_multiplier > 1.0 else 1280
-            x = slim.conv2d(x, final_channels, (1, 1), stride=1, scope='Conv_1')
+            x = slim.conv2d(x, final_channels, (1, 1), stride=1, scope='Conv_1')  # stride 16
 
     return {'rpn_features': rpn_features, 'second_stage_features': x}
 

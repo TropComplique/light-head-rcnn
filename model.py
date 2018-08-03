@@ -4,6 +4,10 @@ from detector.backbones import resnet, mobilenet
 from metrics import Evaluator
 
 
+MOMENTUM = 0.9
+GRADIENT_CLIP = 10.0
+
+
 def model_fn(features, labels, mode, params, config):
     """This is a function for creating a computational tensorflow graph.
     The function is in format required by tf.estimator.
@@ -38,11 +42,13 @@ def model_fn(features, labels, mode, params, config):
         )
 
     if mode == tf.estimator.ModeKeys.PREDICT:
-        # this is required for exporting a savedmodel
-        h, w = tf.to_float(features['size'][1]), tf.to_float(features['size'][2])
-        s = tf.to_float(tf.shape(features['images']))
+
+        w, h = features['images_size']  # original image size
+        w, h = tf.to_float(w), tf.to_float(h)
+        s = tf.to_float(tf.shape(features['images']))  # size after resizing
         scaler = tf.stack([h/s[1], w/s[2], h/s[1], w/s[2]])
         predictions['boxes'] = scaler * predictions['boxes']
+
         export_outputs = tf.estimator.export.PredictOutput({
             name: tf.identity(tensor, name)
             for name, tensor in predictions.items()
@@ -74,7 +80,7 @@ def model_fn(features, labels, mode, params, config):
     if mode == tf.estimator.ModeKeys.EVAL:
 
         with tf.name_scope('evaluator'):
-            evaluator = Evaluator(class_names=['face'])
+            evaluator = Evaluator(num_classes=params['num_classes'])
             eval_metric_ops = evaluator.get_metric_ops(labels, predictions)
 
         return tf.estimator.EstimatorSpec(
@@ -89,9 +95,9 @@ def model_fn(features, labels, mode, params, config):
         tf.summary.scalar('learning_rate', learning_rate)
 
     with tf.variable_scope('optimizer'):
-        optimizer = tf.train.MomentumOptimizer(learning_rate, momentum=0.9)
+        optimizer = tf.train.MomentumOptimizer(learning_rate, momentum=MOMENTUM)
         grads_and_vars = optimizer.compute_gradients(total_loss)
-        grads_and_vars = [(tf.clip_by_norm(g, 10.0), v) for g, v in grads_and_vars]
+        grads_and_vars = [(tf.clip_by_norm(g, GRADIENT_CLIP), v) for g, v in grads_and_vars]
         train_op = optimizer.apply_gradients(grads_and_vars, global_step)
         # train_op = tf.group(train_op)  # WTF!
 

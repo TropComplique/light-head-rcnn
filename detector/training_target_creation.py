@@ -150,13 +150,14 @@ def match_boxes(
         # (force match for each groundtruth box)
         forced_matches_ids = tf.argmax(similarity_matrix, axis=1, output_type=tf.int32)  # shape [N]
         # if all indices in forced_matches_ids are different then all rows will be matched
-    
+
         num_anchors = tf.shape(anchors)[0]
         forced_matches_indicators = tf.one_hot(forced_matches_ids, depth=num_anchors, dtype=tf.int32)  # shape [N, num_anchors]
         forced_match_row_ids = tf.argmax(forced_matches_indicators, axis=0, output_type=tf.int32)  # shape [num_anchors]
-        
+
+        # some forced matches could be very bad!
         forced_matches_values = tf.reduce_max(similarity_matrix, axis=1)  # shape [N]
-        small_iou = 0.05
+        small_iou = 0.05  # this requires that forced match has at least small intersection
         is_okay = tf.to_int32(tf.greater_equal(forced_matches_values, small_iou))  # shape [N]
         forced_matches_indicators = forced_matches_indicators * tf.expand_dims(is_okay, axis=1)
 

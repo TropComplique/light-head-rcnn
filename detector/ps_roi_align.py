@@ -36,7 +36,7 @@ def position_sensitive_roi_align_pooling(
         total_bins *= num_bins
         bin_crop_size.append(crop_dim // num_bins)
 
-    depth = features.shape.as_list()[3]
+    depth = features.shape[3].value
     assert depth % total_bins == 0
 
     ymin, xmin, ymax, xmax = tf.unstack(boxes, axis=1)
@@ -64,7 +64,8 @@ def position_sensitive_roi_align_pooling(
     feature_crops = []
     for split, box in zip(feature_splits, position_sensitive_boxes):
         crop = tf.image.crop_and_resize(
-            split, box, box_image_indices, bin_crop_size
+            split, box, box_image_indices,
+            bin_crop_size, method='bilinear'
         )
         # shape [num_boxes, crop_height/spatial_bins_y, crop_width/spatial_bins_x, depth/total_bins]
 
