@@ -63,14 +63,14 @@ def mobilenet(images, depth_multiplier=1.0):
                 (6, 96, 1), (6, 96, 1), (6, 96, 1),
 
                 # note that in the original stride = 2 in the first unit here:
-                (6, 160, 1), (6, 160, 1), (6, 160, 1),
+                # (6, 160, 1), (6, 160, 1), (6, 160, 1),
+                 (6, 160, 2), (6, 160, 1), (6, 160, 1),
 
                 (6, 320, 1),
             ]
-
+            
             # initial layers are not trainable
             with slim.arg_scope([slim.conv2d, depthwise_conv], trainable=False):
-
                 x = slim.conv2d(x, depth(32), (3, 3), stride=2, scope='Conv')
                 x = inverted_residual_block(
                     x, stride=1, expansion_factor=1,

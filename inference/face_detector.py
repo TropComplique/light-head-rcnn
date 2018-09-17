@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+from tensorflow.python.client import timeline
 
 
 class FaceDetector:
@@ -44,10 +45,19 @@ class FaceDetector:
 
         Note that box coordinates are in the order: ymin, xmin, ymax, xmax!
         """
-
+        
+        options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+        run_metadata = tf.RunMetadata()
+    
         feed_dict = {self.input_image: np.expand_dims(image, 0)}
-        boxes, scores = self.sess.run(self.output_ops, feed_dict)
-
+        boxes, scores = self.sess.run(self.output_ops, feed_dict, options=options, run_metadata=run_metadata)
+        #boxes, scores = self.sess.run(self.output_ops, feed_dict)
+        
+        fetched_timeline = timeline.Timeline(run_metadata.step_stats)
+        chrome_trace = fetched_timeline.generate_chrome_trace_format()
+        with open('timeline.json', 'w') as f:
+            f.write(chrome_trace)
+    
         to_keep = scores > score_threshold
         boxes = boxes[to_keep]
         scores = scores[to_keep]

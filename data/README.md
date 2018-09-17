@@ -31,16 +31,16 @@ Here are examples of commands for preparing training/evaluation data. To them yo
 3. Connvert tfrecords  
   ```
   python create_tfrecords.py \
-      --image_dir=/mnt/datasets/dan/coco_train/images/ \
-      --annotations_dir=/mnt/datasets/dan/coco_train/annotations/ \
-      --output=/mnt/datasets/dan/coco_train_shards/ \
+      --image_dir=/home/gpu2/hdd/dan/COCO/images/train2017/ \
+      --annotations_dir=/home/gpu2/hdd/dan/COCO/train_annotations/ \
+      --output=/mnt/datasets/COCO/train_shards/ \
       --labels=coco_labels.txt \
       --num_shards=1000
 
   python create_tfrecords.py \
-      --image_dir=/mnt/datasets/dan/coco_val/images/ \
-      --annotations_dir=/mnt/datasets/dan/coco_val/annotations/ \
-      --output=/mnt/datasets/dan/coco_val_shards/ \
+      --image_dir=/home/gpu2/hdd/dan/COCO/images/val2017/ \
+      --annotations_dir=/home/gpu2/hdd/dan/COCO/val_annotations/ \
+      --output=/mnt/datasets/COCO/val_shards/ \
       --labels=coco_labels.txt \
       --num_shards=1
   ```  

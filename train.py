@@ -1,16 +1,17 @@
 import tensorflow as tf
 import os
-from model import model_fn
+from model import model_fn, RestoreMovingAverageHook
 from detector.input_pipeline import Pipeline
 
 # to train a face detector use this:
 # from params import wider_params as params
 
 # to train a light (fast) face detector use this:
-from params import wider_light_params as params
+# from params import wider_light_params as params
 
 # to train an object detector on coco use this:
-# from params import coco_params as params
+from params import coco_params as params
+
 tf.logging.set_verbosity('INFO')
 
 
@@ -63,6 +64,7 @@ train_input_fn = get_input_fn(is_training=True)
 val_input_fn = get_input_fn(is_training=False)
 estimator = tf.estimator.Estimator(model_fn, params=params, config=run_config)
 
+restore_ema = RestoreMovingAverageHook(params['model_dir'])
 train_spec = tf.estimator.TrainSpec(train_input_fn, max_steps=params['num_steps'])
-eval_spec = tf.estimator.EvalSpec(val_input_fn, steps=None, start_delay_secs=3600, throttle_secs=3600)
+eval_spec = tf.estimator.EvalSpec(val_input_fn, steps=None, start_delay_secs=3600 * 3, throttle_secs=3600 * 3, hooks=[restore_ema])
 tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)

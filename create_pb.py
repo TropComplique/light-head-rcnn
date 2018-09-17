@@ -5,7 +5,7 @@ from model import model_fn
 from detector.input_pipeline.pipeline import resize_keeping_aspect_ratio
 
 # from params import wider_light_params as params
-from params import wider_params as params
+from params import coco_params as params
 
 
 """
@@ -22,7 +22,7 @@ PB_FILE_PATH = 'model.pb'
 MIN_DIMENSION = 800
 MAX_DIMENSION = 1200
 WIDTH, HEIGHT = None, None
-NMS_MAX_OUTPUT_SIZE = 300
+NMS_MAX_OUTPUT_SIZE = 100
 BATCH_SIZE = 1  # must be an integer
 
 
@@ -40,15 +40,18 @@ def export_savedmodel():
     def serving_input_receiver_fn():
         images = tf.placeholder(dtype=tf.uint8, shape=[BATCH_SIZE, None, None, 3], name='images')
         w, h = tf.shape(images)[2], tf.shape(images)[1]
+        
+        with tf.device('/gpu:0'):
+    #         def fn(image):
+    #             return resize_keeping_aspect_ratio(image, MIN_DIMENSION, MAX_DIMENSION)
+            images = tf.to_float(images)
+            resized_images = tf.expand_dims(resize_keeping_aspect_ratio(tf.squeeze(images, 0), MIN_DIMENSION, MAX_DIMENSION), 0)
+            #resized_images = tf.map_fn(fn, tf.to_float(images), dtype=tf.float32, back_prop=False)
 
-        def fn(image):
-            return resize_keeping_aspect_ratio(image, MIN_DIMENSION, MAX_DIMENSION)
-        resized_images = tf.map_fn(fn, images, dtype=tf.float32, back_prop=False)
-
-        features = {
-            'images': (1.0/255.0) * resized_images,
-            'images_size': (w, h)
-        }
+            features = {
+                'images': (1.0/255.0) * resized_images,
+                'images_size': tf.stack([w, h])
+            }
         return tf.estimator.export.ServingInputReceiver(features, {'images': images})
 
     shutil.rmtree(OUTPUT_FOLDER, ignore_errors=True)

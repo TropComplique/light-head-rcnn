@@ -6,6 +6,7 @@ from metrics import Evaluator
 
 MOMENTUM = 0.9
 GRADIENT_CLIP = 10.0
+MOVING_AVERAGE_DECAY = 0.997
 
 
 def model_fn(features, labels, mode, params, config):
@@ -43,8 +44,7 @@ def model_fn(features, labels, mode, params, config):
 
     if mode == tf.estimator.ModeKeys.PREDICT:
 
-        w, h = features['images_size']  # original image size
-        w, h = tf.to_float(w), tf.to_float(h)
+        w, h = tf.unstack(tf.to_float(features['images_size']))  # original image size
         s = tf.to_float(tf.shape(features['images']))  # size after resizing
         scaler = tf.stack([h/s[1], w/s[2], h/s[1], w/s[2]])
         predictions['boxes'] = scaler * predictions['boxes']
@@ -104,6 +104,10 @@ def model_fn(features, labels, mode, params, config):
     for g, v in grads_and_vars:
         tf.summary.histogram(v.name[:-2] + '_hist', v)
         tf.summary.histogram(v.name[:-2] + '_grad_hist', g)
+        
+    with tf.control_dependencies([train_op]), tf.name_scope('ema'):
+        ema = tf.train.ExponentialMovingAverage(decay=MOVING_AVERAGE_DECAY, num_updates=global_step)
+        train_op = ema.apply(tf.trainable_variables())
 
     return tf.estimator.EstimatorSpec(mode, loss=total_loss, train_op=train_op)
 
@@ -116,3 +120,19 @@ def add_weight_decay(weight_decay):
     for w in weights:
         value = tf.multiply(weight_decay, tf.nn.l2_loss(w))
         tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, value)
+
+class RestoreMovingAverageHook(tf.train.SessionRunHook):
+    def __init__(self, model_dir):
+        super(RestoreMovingAverageHook, self).__init__()
+        self.model_dir = model_dir
+
+    def begin(self):
+        ema = tf.train.ExponentialMovingAverage(decay=MOVING_AVERAGE_DECAY)
+        variables_to_restore = ema.variables_to_restore()
+        self.load_ema = tf.contrib.framework.assign_from_checkpoint_fn(
+            tf.train.latest_checkpoint(self.model_dir), variables_to_restore
+        )
+
+    def after_create_session(self, sess, coord):
+        tf.logging.info('Loading EMA weights...')
+        self.load_ema(sess)

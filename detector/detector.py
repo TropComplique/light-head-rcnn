@@ -145,16 +145,16 @@ class Detector:
                     batch_size=params['first_stage_batch_size'],
                     positive_fraction=params['positive_fraction']
                 )  # shape [num_anchors]
-                is_positive_chosen_anchor = tf.logical_and(
+                is_chosen_anchor_positive = tf.logical_and(
                     is_chosen_anchor, is_positive_anchor
                 )
 
                 rpn_loc_losses = localization_loss(
                     rpn_encoded_boxes, targets['rpn_regression'],
-                    weights=tf.to_float(is_positive_chosen_anchor)
+                    weights=tf.to_float(is_chosen_anchor_positive)
                 )
                 rpn_cls_losses = classification_loss(
-                    rpn_objectness_scores, tf.to_int32(is_positive),
+                    rpn_objectness_scores, tf.to_int32(is_chosen_anchor_positive),
                     weights=tf.to_float(is_chosen_anchor)
                 )
                 # they have shape [first_stage_batch_size]

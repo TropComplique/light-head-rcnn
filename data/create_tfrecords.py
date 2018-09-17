@@ -2,6 +2,7 @@ import io
 import os
 from PIL import Image
 import tensorflow as tf
+import numpy as np
 import json
 import shutil
 import random
@@ -77,7 +78,7 @@ def dict_to_tf_example(annotation, image_dir, label_encoder):
         rgb_image = np.stack(3*[np.array(image)], axis=2)
         encoded_jpg = to_jpeg_bytes(rgb_image)
         image = Image.fromarray(rgb_image)
-    if image.format != 'JPEG':
+    elif image.format != 'JPEG':
         print('non jpeg image:', image_name)
         encoded_jpg = to_jpeg_bytes(np.array(image))
 
