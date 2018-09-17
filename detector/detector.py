@@ -13,7 +13,7 @@ class Detector:
         Arguments:
             images: a float tensor with shape [batch_size, image_height, image_width, 3],
                 it represents RGB images with pixel values in range [0, 1].
-            feature_extractor: it takes images and returns a dict with float tensors.
+            feature_extractor: it takes images and returns a dict with two float tensors.
             is_training: a boolean.
             params: a dict.
         """

@@ -106,16 +106,13 @@ class Pipeline:
 
         # convert to absolute coordinates
         height, width = tf.shape(image)[0], tf.shape(image)[1]
-        scaler = tf.to_float(tf.stack([height - 1, width - 1, height - 1, width - 1]))
+        scaler = tf.to_float(tf.stack([height, width, height, width]))
         boxes = boxes * scaler
-
-        # it is not needed if batch size = 1
-        num_boxes = tf.to_int32(tf.shape(boxes)[0])
 
         # in the format required by tf.estimator,
         # they will be batched later
         features = {'images': image}
-        labels = {'boxes': boxes, 'labels': labels, 'num_boxes': num_boxes}
+        labels = {'boxes': boxes, 'labels': labels, 'num_boxes': tf.to_int32(tf.shape(boxes)[0])}
         return features, labels
 
     def augmentation(self, image, boxes, labels):
@@ -130,9 +127,7 @@ class Pipeline:
             overlap_thresh=0.3
         )
 
-        # note that color augmentations are very slow!
         image = random_color_manipulations(image, probability=0.1, grayscale_probability=0.05)
-
         image = random_pixel_value_scale(image, minval=0.8, maxval=1.2, probability=0.1)
         boxes = random_jitter_boxes(boxes, ratio=0.01)
         image, boxes = random_flip_left_right(image, boxes)

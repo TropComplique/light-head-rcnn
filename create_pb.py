@@ -24,6 +24,7 @@ MAX_DIMENSION = 1200
 WIDTH, HEIGHT = None, None
 NMS_MAX_OUTPUT_SIZE = 100
 BATCH_SIZE = 1  # must be an integer
+assert BATCH_SIZE == 1
 
 
 def export_savedmodel():
@@ -38,21 +39,20 @@ def export_savedmodel():
     estimator = tf.estimator.Estimator(model_fn, params=params, config=run_config)
 
     def serving_input_receiver_fn():
-        images = tf.placeholder(dtype=tf.uint8, shape=[BATCH_SIZE, None, None, 3], name='images')
-        w, h = tf.shape(images)[2], tf.shape(images)[1]
-        
+        raw_images = tf.placeholder(dtype=tf.uint8, shape=[BATCH_SIZE, None, None, 3], name='images')
+        w, h = tf.shape(raw_images)[2], tf.shape(raw_images)[1]
+
         with tf.device('/gpu:0'):
-    #         def fn(image):
-    #             return resize_keeping_aspect_ratio(image, MIN_DIMENSION, MAX_DIMENSION)
-            images = tf.to_float(images)
-            resized_images = tf.expand_dims(resize_keeping_aspect_ratio(tf.squeeze(images, 0), MIN_DIMENSION, MAX_DIMENSION), 0)
-            #resized_images = tf.map_fn(fn, tf.to_float(images), dtype=tf.float32, back_prop=False)
+
+            images = tf.to_float(raw_images)
+            images = tf.squeeze(images, 0)
+            resized_images = resize_keeping_aspect_ratio(images, MIN_DIMENSION, MAX_DIMENSION)
 
             features = {
-                'images': (1.0/255.0) * resized_images,
+                'images': (1.0/255.0) * tf.expand_dims(resized_images, 0),
                 'images_size': tf.stack([w, h])
             }
-        return tf.estimator.export.ServingInputReceiver(features, {'images': images})
+        return tf.estimator.export.ServingInputReceiver(features, {'images': raw_images})
 
     shutil.rmtree(OUTPUT_FOLDER, ignore_errors=True)
     os.mkdir(OUTPUT_FOLDER)

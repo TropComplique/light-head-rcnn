@@ -30,10 +30,10 @@ def head(x, rois, roi_image_indices, image_size, params):
             'weights_initializer': tf.random_normal_initializer(mean=0.0, stddev=0.01)
         }
         with slim.arg_scope([slim.conv2d], **config):
-            left = slim.conv2d(x, channels_middle, [k, 1], scope='conv_%dx1_left' % k)
-            left = slim.conv2d(left, channels_out, [1, k], scope='conv_1x%d_left' % k)
-            right = slim.conv2d(x, channels_middle, [1, k], scope='conv_1x%d_right' % k)
-            right = slim.conv2d(right, channels_out, [k, 1], scope='conv_%dx1_right' % k)
+            left = slim.conv2d(x, channels_middle, (k, 1), scope='conv_%dx1_left' % k)
+            left = slim.conv2d(left, channels_out, (1, k), scope='conv_1x%d_left' % k)
+            right = slim.conv2d(x, channels_middle, (1, k), scope='conv_1x%d_right' % k)
+            right = slim.conv2d(right, channels_out, (k, 1), scope='conv_%dx1_right' % k)
             x = tf.nn.relu(left + right)  # it has the same spatial size as initial `x`
 
     with tf.name_scope('position_sensitive_roi_align'):
@@ -42,8 +42,8 @@ def head(x, rois, roi_image_indices, image_size, params):
         # convert to normalized coordinates
         image_width, image_height = image_size
         scaler = tf.to_float(tf.stack([
-            image_height - 1, image_width - 1,
-            image_height - 1, image_width - 1
+            image_height, image_width,
+            image_height, image_width
         ]))
         rois = rois/scaler
 

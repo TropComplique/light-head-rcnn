@@ -22,7 +22,6 @@ Notes:
    They are in the inference mode.
 
 5. I don't use stride in the last unit of the third block.
-   Instead I use dilation rate = 2.
 
 6. The first layers of the network are frozen during training.
 
@@ -72,15 +71,15 @@ def resnet(images):
             # weights of these layers are fixed during training
             with slim.arg_scope([slim.conv2d], trainable=False):
                 x = conv2d_same(x, 64, 7, stride=2, scope='conv1')
-                x = slim.max_pool2d(x, [3, 3], stride=2, padding='SAME', scope='pool1')
+                x = slim.max_pool2d(x, (3, 3), stride=2, padding='SAME', scope='pool1')
                 x = stack_units(x, [(64, 1, 1)] * 2 + [(64, 2, 1)], scope='block1')
 
             x = stack_units(x, [(128, 1, 1)] * 3 + [(128, 2, 1)], scope='block2')
-            x = stack_units(x, [(256, 1, 1)] * 5 + [(256, 1, 2)], scope='block3')
-            features['rpn_features'] = x
+            x = stack_units(x, [(256, 1, 1)] * 5 + [(256, 1, 1)], scope='block3')
+            features['rpn_features'] = x  # stride 16
 
             x = stack_units(x, [(512, 1, 2)] * 3, scope='block4')
-            features['second_stage_features'] = x
+            features['second_stage_features'] = x  # stride 16
 
         return features
 
@@ -102,27 +101,27 @@ def stack_units(x, config, scope='block'):
 def bottleneck(x, depth, depth_bottleneck, stride, rate=1, scope='bottleneck'):
     with tf.variable_scope(scope):
 
-        residual = slim.conv2d(x, depth_bottleneck, [1, 1], stride=1, scope='conv1')
+        residual = slim.conv2d(x, depth_bottleneck, (1, 1), stride=1, scope='conv1')
         residual = conv2d_same(residual, depth_bottleneck, 3, stride, rate=rate, scope='conv2')
-        residual = slim.conv2d(residual, depth, [1, 1], stride=1, activation_fn=None, scope='conv3')
+        residual = slim.conv2d(residual, depth, (1, 1), stride=1, activation_fn=None, scope='conv3')
 
         depth_in = x.shape[3].value
         if depth == depth_in:
             shortcut = subsample(x, stride, 'shortcut')
         else:
-            shortcut = slim.conv2d(x, depth, [1, 1], stride=stride, activation_fn=None, scope='shortcut')
+            shortcut = slim.conv2d(x, depth, (1, 1), stride=stride, activation_fn=None, scope='shortcut')
 
         return tf.nn.relu(shortcut + residual)
 
 
 def subsample(x, factor, scope):
-    return x if factor == 1 else slim.max_pool2d(x, [1, 1], stride=factor, scope=scope)
+    return x if factor == 1 else slim.max_pool2d(x, (1, 1), stride=factor, scope=scope)
 
 
 def conv2d_same(x, num_outputs, kernel_size, stride, rate=1, scope='conv2d_same'):
     if stride == 1:
         return slim.conv2d(
-            x, num_outputs, kernel_size, stride=1, rate=rate,
+            x, num_outputs, (kernel_size, kernel_size), stride=1, rate=rate,
             padding='SAME', scope=scope
         )
     else:
@@ -132,6 +131,7 @@ def conv2d_same(x, num_outputs, kernel_size, stride, rate=1, scope='conv2d_same'
         pad_end = pad_total - pad_beg
         x = tf.pad(x, [[0, 0], [pad_beg, pad_end], [pad_beg, pad_end], [0, 0]])
         return slim.conv2d(
-            x, num_outputs, kernel_size, stride=stride, rate=rate,
+            x, num_outputs, (kernel_size, kernel_size),
+            stride=stride, rate=rate,
             padding='VALID', scope=scope
         )

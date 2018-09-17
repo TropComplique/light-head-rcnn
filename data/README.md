@@ -1,5 +1,5 @@
 # Data preparation
-Here are examples of commands for preparing training/evaluation data. To them you will need to
+
 ### WIDER
 
 1. Download the dataset from [here](http://mmlab.ie.cuhk.edu.hk/projects/WIDERFace/).
@@ -26,9 +26,10 @@ Here are examples of commands for preparing training/evaluation data. To them yo
 ### COCO
 
 1. Download train and val images [here](http://cocodataset.org/#download)
+
 2. Get [COCO API](https://github.com/cocodataset/cocoapi)
 
-3. Connvert tfrecords  
+3. Create tfrecords  
   ```
   python create_tfrecords.py \
       --image_dir=/home/gpu2/hdd/dan/COCO/images/train2017/ \

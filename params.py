@@ -62,8 +62,8 @@ wider_params = {
 
     # FEATURE EXTRACTOR:
 
-    'backbone': 'resnet',  # 'resnet' or 'mobilenet'
-    'depth_multiplier': 1.0,  # a float number, relevant only for mobilenet
+    'backbone': 'resnet',  # 'resnet' or 'mobilenet' or 'shufflenet'
+    'depth_multiplier': 1.0,  # a float number, relevant only for mobilenet and shufflenet
     'weight_decay': 1e-4,
 
     # THE HEAD:
@@ -91,9 +91,9 @@ wider_params = {
 wider_light_params = wider_params.copy()
 wider_light_params.update({
     'model_dir': '/home/dan/work/light-head-rcnn/models/run01/',
-    'pretrained_checkpoint': 'pretrained/mobilenet_v2_0.75_224.ckpt',
-    'backbone': 'mobilenet',
-    'depth_multiplier': 0.75,
+    'pretrained_checkpoint': 'pretrained/shufflenet_v2_1.0x/model.ckpt-1661328',
+    'backbone': 'shufflenet',
+    'depth_multiplier': 1.0,
     'channels_middle': 48,
     'rpn_num_channels': 128,
     'fc_layer_size': 256,
@@ -101,14 +101,14 @@ wider_light_params.update({
 
 coco_params = wider_params.copy()
 coco_params.update({
-    'model_dir': '/home/dan/work/light-head-rcnn/models/run03/',
+    'model_dir': '/home/dan/work/light-head-rcnn/models/run02/',
     'train_dataset_path': '/mnt/datasets/COCO/train_shards/',
     'val_dataset_path': '/mnt/datasets/COCO/val_shards/',
-    'pretrained_checkpoint': 'pretrained/mobilenet_v2_0.75_224.ckpt',
+    'pretrained_checkpoint': 'pretrained/shufflenet_v2_1.0x/model.ckpt-1661328',
     'num_classes': 80,
     'positives_threshold': 0.7,
-    'backbone': 'mobilenet',
-    'depth_multiplier': 0.75,
+    'backbone': 'shufflenet',
+    'depth_multiplier': 1.0,
     'weight_decay': 1e-5,
     'channels_middle': 64,
     'aspect_ratios': [0.5, 1.0, 2.0],

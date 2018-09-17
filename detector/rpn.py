@@ -7,16 +7,12 @@ from detector.utils import prune_outside_window, clip_by_window, batch_decode
 """
 Notes:
 1. All boxes are in absolute coordinates.
-   `ymin` and `ymax` are float numbers in [0, image_height - 1] range.
-   `xmin` and `xmax` are float numbers in [0, image_width - 1] range.
+   `ymin` and `ymax` are float numbers in [0, image_height] range.
+   `xmin` and `xmax` are float numbers in [0, image_width] range.
    And for each box I define:
    height = ymax - ymin, width = xmax - xmin, aspect_ratio = width/height.
    Also it must be that:
    ymin < ymax and xmin < xmax.
-
-   Note that you can also define box size like this:
-   height = ymax - ymin + 1, width = xmax - xmin + 1.
-   But I don't do it. Is this a problem?
 
 2. Scale of an anchor box is defined like this:
    scale = sqrt(height * width).
@@ -57,16 +53,16 @@ def rpn(x, is_training, image_size, params):
 
     with tf.variable_scope('rpn'):
         x = slim.conv2d(
-            x, params['rpn_num_channels'], [3, 3], padding='SAME',
+            x, params['rpn_num_channels'], (3, 3), padding='SAME',
             activation_fn=tf.nn.relu, scope='conv'
         )
         raw_encoded_boxes = slim.conv2d(
-            x, num_anchors_per_cell * 4, [1, 1],
+            x, num_anchors_per_cell * 4, (1, 1),
             weights_initializer=tf.truncated_normal_initializer(mean=0.0, stddev=0.001),
             activation_fn=None, scope='bounding_boxes'
         )
         raw_objectness_scores = slim.conv2d(
-            x, num_anchors_per_cell * 2, [1, 1],
+            x, num_anchors_per_cell * 2, (1, 1),
             weights_initializer=tf.truncated_normal_initializer(mean=0.0, stddev=0.01),
             activation_fn=None, scope='objectness_scores'
         )
@@ -179,7 +175,7 @@ def get_proposals(
     batch_size = encoded_boxes.shape[0].value
     height, width = tf.shape(anchors)[0], tf.shape(anchors)[1]
     image_width, image_height = image_size
-    window = tf.to_float(tf.stack([0, 0, image_height - 1, image_width - 1]))
+    window = tf.to_float(tf.stack([0, 0, image_height, image_width]))
 
     with tf.name_scope('reshaping'):
 
@@ -214,8 +210,11 @@ def get_proposals(
         # `n` - index of an image in the batch
 
         b = clip_by_window(b, window)
-        b, p = remove_some_proposals(b, p, min_proposal_area, before_nms_score_threshold)
-        to_keep = tf.image.non_max_suppression(b, p, nms_max_output_size, iou_threshold)
+        b, p = remove_some_proposals(b, p, min_proposal_area)
+        to_keep = tf.image.non_max_suppression(
+            b, p, nms_max_output_size,
+            iou_threshold, before_nms_score_threshold
+        )
         b = tf.gather(b, to_keep)
         k = tf.size(to_keep)
 
@@ -235,13 +234,12 @@ def get_proposals(
     return proposals, encoded_boxes, objectness_scores, anchors
 
 
-def remove_some_proposals(boxes, scores, min_area, score_threshold):
+def remove_some_proposals(boxes, scores, min_area):
     """
     Arguments:
         boxes: a float tensor with shape [N, 4].
         scores: a float tensor with shape [N].
         min_area: a float number.
-        score_threshold: a float number.
     Returns:
         boxes: a float tensor with shape [M, 4], where M <= N.
         scores: a float tensor with shape [M].
@@ -256,10 +254,10 @@ def remove_some_proposals(boxes, scores, min_area, score_threshold):
         xmax = tf.maximum(xmin, xmax)
         boxes = tf.stack([ymin, xmin, ymax, xmax], axis=1)
 
-    with tf.name_scope('remove_some_proposals'):
+    # maybe this part is slow
+    with tf.name_scope('remove_small_proposals'):
         area = (ymax - ymin) * (xmax - xmin)
-        is_big = tf.greater_equal(area, min_area)  # tiny proposals are removed
-        is_confident = tf.greater_equal(scores, score_threshold)  # low scoring boxes are removed
-        good = tf.squeeze(tf.where(tf.logical_and(is_big, is_confident)), axis=1)
-        boxes, scores = tf.gather(boxes, good), tf.gather(scores, good)
+        is_big = tf.greater_equal(area, min_area)
+        boxes = tf.boolean_mask(boxes, is_big)
+        scores = tf.boolean_mask(boxes, scores)
         return boxes, scores

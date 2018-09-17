@@ -3,6 +3,11 @@ import numpy as np
 from tensorflow.python.client import timeline
 
 
+# for debugging only
+WITH_TIMELINE = True
+PATH_TO_TIMELINE = 'timeline.json'
+
+
 class FaceDetector:
     def __init__(self, model_path, gpu_memory_fraction=0.25, visible_device_list='0'):
         """
@@ -22,6 +27,7 @@ class FaceDetector:
         self.input_image = graph.get_tensor_by_name('import/images:0')
         self.output_ops = [
             graph.get_tensor_by_name('import/boxes:0'),
+            graph.get_tensor_by_name('import/labels:0'),
             graph.get_tensor_by_name('import/scores:0')
         ]
 
@@ -41,25 +47,31 @@ class FaceDetector:
             score_threshold: a float number.
         Returns:
             boxes: a float numpy array of shape [num_faces, 4].
+            labels: an int numpy array of shape [num_faces].
             scores: a float numpy array of shape [num_faces].
 
         Note that box coordinates are in the order: ymin, xmin, ymax, xmax!
         """
-        
-        options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-        run_metadata = tf.RunMetadata()
-    
+
         feed_dict = {self.input_image: np.expand_dims(image, 0)}
-        boxes, scores = self.sess.run(self.output_ops, feed_dict, options=options, run_metadata=run_metadata)
-        #boxes, scores = self.sess.run(self.output_ops, feed_dict)
-        
-        fetched_timeline = timeline.Timeline(run_metadata.step_stats)
-        chrome_trace = fetched_timeline.generate_chrome_trace_format()
-        with open('timeline.json', 'w') as f:
-            f.write(chrome_trace)
-    
+
+        if WITH_TIMELINE:
+            options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+            run_metadata = tf.RunMetadata()
+            boxes, labels, scores = self.sess.run(
+                self.output_ops, feed_dict,
+                options=options, run_metadata=run_metadata
+            )
+            fetched_timeline = timeline.Timeline(run_metadata.step_stats)
+            chrome_trace = fetched_timeline.generate_chrome_trace_format()
+            with open(PATH_TO_TIMELINE, 'w') as f:
+                f.write(chrome_trace)
+        else:
+            boxes, labels, scores = self.sess.run(self.output_ops, feed_dict)
+
         to_keep = scores > score_threshold
         boxes = boxes[to_keep]
+        labels = labels[to_keep]
         scores = scores[to_keep]
 
-        return boxes, scores
+        return boxes, labels, scores

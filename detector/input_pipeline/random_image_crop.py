@@ -1,5 +1,5 @@
 import tensorflow as tf
-from detector.utils import area, intersection, prune_outside_window
+from detector.utils import area, intersection
 from detector.constants import EPSILON
 
 
@@ -78,7 +78,7 @@ def randomly_crop_image(
         window = tf.squeeze(window, axis=[0, 1])
 
         # remove boxes that are completely outside the cropped image
-        boxes, inside_window_ids = prune_outside_window(boxes, window)
+        boxes, inside_window_ids = prune_completely_outside_window(boxes, window)
 
         # remove boxes that are too much outside the cropped image
         boxes, keep_indices = prune_non_overlapping_boxes(
@@ -91,6 +91,37 @@ def randomly_crop_image(
 
         keep_indices = tf.gather(inside_window_ids, keep_indices)
         return image, boxes, keep_indices
+
+
+def prune_completely_outside_window(boxes, window):
+    """Prunes bounding boxes that fall completely outside of the given window.
+    This function does not clip partially overflowing boxes.
+    Arguments:
+        boxes: a float tensor with shape [M_in, 4].
+        window: a float tensor with shape [4] representing [ymin, xmin, ymax, xmax]
+            of the window.
+    Returns:
+        boxes: a float tensor with shape [M_out, 4] where 0 <= M_out <= M_in.
+        valid_indices: a long tensor with shape [M_out] indexing the valid bounding boxes
+            in the input 'boxes' tensor.
+    """
+    with tf.name_scope('prune_completely_outside_window'):
+
+        y_min, x_min, y_max, x_max = tf.split(boxes, num_or_size_splits=4, axis=1)
+        # they have shape [None, 1]
+        win_y_min, win_x_min, win_y_max, win_x_max = tf.unstack(window)
+        # they have shape []
+
+        coordinate_violations = tf.concat([
+            tf.greater_equal(y_min, win_y_max), tf.greater_equal(x_min, win_x_max),
+            tf.less_equal(y_max, win_y_min), tf.less_equal(x_max, win_x_min)
+        ], axis=1)
+        valid_indices = tf.squeeze(
+            tf.where(tf.logical_not(tf.reduce_any(coordinate_violations, 1))),
+            axis=1
+        )
+        boxes = tf.gather(boxes, valid_indices)
+        return boxes, valid_indices
 
 
 def prune_non_overlapping_boxes(boxes1, boxes2, min_overlap):

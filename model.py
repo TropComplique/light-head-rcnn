@@ -1,10 +1,11 @@
 import tensorflow as tf
 from detector import Detector
-from detector.backbones import resnet, mobilenet
+from detector.backbones import resnet, mobilenet, shufflenet
 from metrics import Evaluator
 
 
 MOMENTUM = 0.9
+USE_NESTEROV = True
 GRADIENT_CLIP = 10.0
 MOVING_AVERAGE_DECAY = 0.997
 
@@ -21,6 +22,9 @@ def model_fn(features, labels, mode, params, config):
     elif params['backbone'] == 'mobilenet':
         feature_extractor = lambda x: mobilenet(x, params['depth_multiplier'])
         checkpoint_scope = 'MobilenetV2/'
+    elif params['backbone'] == 'shufflenet':
+        feature_extractor = lambda x: shufflenet(x, str(params['depth_multiplier']))
+        checkpoint_scope = 'ShuffleNetV2/'
 
     # build the main graph
     is_training = mode == tf.estimator.ModeKeys.TRAIN
@@ -95,16 +99,15 @@ def model_fn(features, labels, mode, params, config):
         tf.summary.scalar('learning_rate', learning_rate)
 
     with tf.variable_scope('optimizer'):
-        optimizer = tf.train.MomentumOptimizer(learning_rate, momentum=MOMENTUM)
+        optimizer = tf.train.MomentumOptimizer(learning_rate, momentum=MOMENTUM, use_nesterov=USE_NESTEROV)
         grads_and_vars = optimizer.compute_gradients(total_loss)
         grads_and_vars = [(tf.clip_by_norm(g, GRADIENT_CLIP), v) for g, v in grads_and_vars]
         train_op = optimizer.apply_gradients(grads_and_vars, global_step)
-        # train_op = tf.group(train_op)  # WTF!
 
     for g, v in grads_and_vars:
         tf.summary.histogram(v.name[:-2] + '_hist', v)
         tf.summary.histogram(v.name[:-2] + '_grad_hist', g)
-        
+
     with tf.control_dependencies([train_op]), tf.name_scope('ema'):
         ema = tf.train.ExponentialMovingAverage(decay=MOVING_AVERAGE_DECAY, num_updates=global_step)
         train_op = ema.apply(tf.trainable_variables())
@@ -120,6 +123,7 @@ def add_weight_decay(weight_decay):
     for w in weights:
         value = tf.multiply(weight_decay, tf.nn.l2_loss(w))
         tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, value)
+
 
 class RestoreMovingAverageHook(tf.train.SessionRunHook):
     def __init__(self, model_dir):

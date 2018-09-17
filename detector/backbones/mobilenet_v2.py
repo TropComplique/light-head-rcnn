@@ -23,6 +23,7 @@ def mobilenet(images, depth_multiplier=1.0):
         """Reduce the number of filters in a layer."""
         return make_divisible(x * depth_multiplier, divisor=8, min_value=8)
 
+    # batch norm is frozen and in the inference mode
     def batch_norm(x):
         x = tf.layers.batch_normalization(
             x, axis=3, center=True, scale=True,
@@ -61,14 +62,10 @@ def mobilenet(images, depth_multiplier=1.0):
                 (6, 32, 2), (6, 32, 1), (6, 32, 1),
                 (6, 64, 2), (6, 64, 1), (6, 64, 1), (6, 64, 1),
                 (6, 96, 1), (6, 96, 1), (6, 96, 1),
-
-                # note that in the original stride = 2 in the first unit here:
-                # (6, 160, 1), (6, 160, 1), (6, 160, 1),
-                 (6, 160, 2), (6, 160, 1), (6, 160, 1),
-
-                (6, 320, 1),
+                (6, 160, 2), (6, 160, 1), (6, 160, 1),
+                (6, 320, 1)
             ]
-            
+
             # initial layers are not trainable
             with slim.arg_scope([slim.conv2d, depthwise_conv], trainable=False):
                 x = slim.conv2d(x, depth(32), (3, 3), stride=2, scope='Conv')
@@ -82,9 +79,9 @@ def mobilenet(images, depth_multiplier=1.0):
             rpn_features, i = stack_blocks(x, i, block_configs[2:12])  # stride 16
             x, _ = stack_blocks(rpn_features, i, block_configs[12:])
             final_channels = int(1280 * depth_multiplier) if depth_multiplier > 1.0 else 1280
-            x = slim.conv2d(x, final_channels, (1, 1), stride=1, scope='Conv_1')  # stride 16
+            second_stage_features = slim.conv2d(x, final_channels, (1, 1), stride=1, scope='Conv_1')  # stride 32
 
-    return {'rpn_features': rpn_features, 'second_stage_features': x}
+    return {'rpn_features': rpn_features, 'second_stage_features': second_stage_features}
 
 
 def inverted_residual_block(x, stride, expansion_factor, output_channels, scope='inverted_residual_block'):

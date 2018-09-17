@@ -28,7 +28,7 @@ Example of a json annotation (with filename "132416.json"):
 }
 
 Labels text file contains a list of all label names.
-One label name per line. Number of line - label integer encoding.
+One label name per line. Number of line - label encoding by integer.
 
 Example of use:
 python create_tfrecords.py \
@@ -73,14 +73,16 @@ def dict_to_tf_example(annotation, image_dir, label_encoder):
     # check image format
     encoded_jpg_io = io.BytesIO(encoded_jpg)
     image = Image.open(encoded_jpg_io)
-    if image.mode != 'RGB':
-        print('non rgb image:', image_name)
+    if image.mode == 'L':  # if grayscale
         rgb_image = np.stack(3*[np.array(image)], axis=2)
         encoded_jpg = to_jpeg_bytes(rgb_image)
-        image = Image.fromarray(rgb_image)
-    elif image.format != 'JPEG':
-        print('non jpeg image:', image_name)
-        encoded_jpg = to_jpeg_bytes(np.array(image))
+        encoded_jpg_io = io.BytesIO(encoded_jpg)
+        image = Image.open(encoded_jpg_io)
+    elif image.mode != 'RGB':
+        return None
+    if image.format != 'JPEG':
+        return None
+    assert image.mode == 'RGB'
 
     width = int(annotation['size']['width'])
     height = int(annotation['size']['height'])
@@ -88,18 +90,15 @@ def dict_to_tf_example(annotation, image_dir, label_encoder):
     assert image.size[0] == width and image.size[1] == height
     ymin, xmin, ymax, xmax, labels = [], [], [], [], []
 
-    if len(annotation['object']) == 0:
-        print(image_name, 'is without any objects!')
-
     for obj in annotation['object']:
 
         # it is assumed that all box coordinates are in
-        # ranges [0, height - 1] and [0, width - 1]
+        # ranges [0, height] and [0, width]
 
-        a = float(obj['bndbox']['ymin'])/(height - 1)
-        b = float(obj['bndbox']['xmin'])/(width - 1)
-        c = float(obj['bndbox']['ymax'])/(height - 1)
-        d = float(obj['bndbox']['xmax'])/(width - 1)
+        a = float(obj['bndbox']['ymin'])/height
+        b = float(obj['bndbox']['xmin'])/width
+        c = float(obj['bndbox']['ymax'])/height
+        d = float(obj['bndbox']['xmax'])/width
         label = label_encoder[obj['name']]
 
         assert (a < c) and (b < d)
@@ -173,6 +172,7 @@ def main():
 
     shard_id = 0
     num_examples_written = 0
+    num_skipped_images = 0
     for example in tqdm(examples_list):
 
         if num_examples_written == 0:
@@ -182,6 +182,9 @@ def main():
         path = os.path.join(annotations_dir, example)
         annotation = json.load(open(path))
         tf_example = dict_to_tf_example(annotation, image_dir, label_encoder=labels)
+        if tf_example is None:
+            num_skipped_images += 1
+            continue
         writer.write(tf_example.SerializeToString())
         num_examples_written += 1
 
@@ -195,6 +198,7 @@ def main():
         writer.close()
 
     print('Result is here:', ARGS.output)
+    print('Number of skipped images:', num_skipped_images)
 
 
 main()

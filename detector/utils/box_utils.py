@@ -174,6 +174,9 @@ def batch_decode(box_encodings, anchors):
 
 def prune_outside_window(boxes, window):
     """
+    It prunes boxes that are completely or
+    partially outside the window.
+
     Arguments:
         boxes: a float tensor with shape [N, 4].
         window: a float tensor with shape [4]
