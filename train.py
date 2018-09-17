@@ -7,10 +7,10 @@ from detector.input_pipeline import Pipeline
 # from params import wider_params as params
 
 # to train a light (fast) face detector use this:
-from params import wider_light_params as params
+# from params import wider_light_params as params
 
 # to train an object detector on coco use this:
-# from params import coco_params as params
+from params import coco_params as params
 
 tf.logging.set_verbosity('INFO')
 
@@ -45,8 +45,8 @@ session_config.gpu_options.visible_device_list = GPU_TO_USE
 run_config = tf.estimator.RunConfig()
 run_config = run_config.replace(
     model_dir=params['model_dir'], session_config=session_config,
-    save_summary_steps=200, save_checkpoints_secs=600,
-    log_step_count_steps=100
+    save_summary_steps=1000, save_checkpoints_secs=1800,
+    log_step_count_steps=1000
 )
 
 
@@ -57,7 +57,7 @@ estimator = tf.estimator.Estimator(model_fn, params=params, config=run_config)
 
 train_spec = tf.estimator.TrainSpec(train_input_fn, max_steps=params['num_steps'])
 eval_spec = tf.estimator.EvalSpec(
-    val_input_fn, steps=None, start_delay_secs=3600 * 2, throttle_secs=3600 * 2,
+    val_input_fn, steps=None, start_delay_secs=3600 * 3, throttle_secs=3600 * 3,
     hooks=[RestoreMovingAverageHook(params['model_dir'])]
 )
 tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)

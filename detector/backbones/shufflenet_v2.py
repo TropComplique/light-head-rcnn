@@ -26,7 +26,7 @@ def shufflenet(images, depth_multiplier='1.0'):
     def batch_norm(x):
         x = tf.layers.batch_normalization(
             x, axis=3, center=True, scale=True,
-            training=is_training, training=False,
+            trainable=False, training=False,
             momentum=BATCH_NORM_MOMENTUM,
             epsilon=BATCH_NORM_EPSILON,
             fused=True, name='batch_norm'
@@ -77,7 +77,9 @@ def block(x, num_units, out_channels=None, scope='stage'):
 def concat_shuffle_split(x, y):
     with tf.name_scope('concat_shuffle_split'):
         shape = tf.shape(x)
-        batch_size = shape[0]
+        batch_size = x.shape[0].value
+        if batch_size is None:
+            batch_size = shape[0]
         height, width = shape[1], shape[2]
         depth = x.shape[3].value
 

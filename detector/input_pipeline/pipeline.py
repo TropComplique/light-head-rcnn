@@ -51,7 +51,7 @@ class Pipeline:
             num_parallel_calls=NUM_PARALLEL_CALLS
         )
         # we want batches with static first dimension:
-        dataset = dataset.apply(tf.contrib.data.batch_and_drop_remainder(batch_size=1))
+        dataset = dataset.batch(batch_size=1, drop_remainder=True)
         dataset = dataset.prefetch(buffer_size=1)
 
         self.dataset = dataset
@@ -120,14 +120,14 @@ class Pipeline:
         # you will need to tune them all, haha
 
         image, boxes, labels = random_image_crop(
-            image, boxes, labels, probability=0.1,
+            image, boxes, labels, probability=0.2,
             min_object_covered=0.9,
-            aspect_ratio_range=(0.5, 2.0),
+            aspect_ratio_range=(0.75, 1.33),
             area_range=(0.4, 0.8),
             overlap_thresh=0.3
         )
 
-        image = random_color_manipulations(image, probability=0.1, grayscale_probability=0.05)
+        image = random_color_manipulations(image, probability=0.2, grayscale_probability=0.05)
         image = random_pixel_value_scale(image, minval=0.8, maxval=1.2, probability=0.1)
         boxes = random_jitter_boxes(boxes, ratio=0.01)
         image, boxes = random_flip_left_right(image, boxes)

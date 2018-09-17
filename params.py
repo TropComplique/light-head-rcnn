@@ -117,7 +117,7 @@ coco_params.update({
     'channels_middle': 64,
     'fc_layer_size': 2048,
     'max_boxes_per_class': 25,
-    'num_steps': 900000,
-    'lr_boundaries': [500000, 800000],
+    'num_steps': 1200000,
+    'lr_boundaries': [600000, 1000000],
     'lr_values': [7e-4, 7e-5, 7e-6],
 })

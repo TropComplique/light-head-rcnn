@@ -259,5 +259,5 @@ def remove_some_proposals(boxes, scores, min_area):
         area = (ymax - ymin) * (xmax - xmin)
         is_big = tf.greater_equal(area, min_area)
         boxes = tf.boolean_mask(boxes, is_big)
-        scores = tf.boolean_mask(boxes, scores)
+        scores = tf.boolean_mask(scores, is_big)
         return boxes, scores
