@@ -4,11 +4,11 @@ from tensorflow.python.client import timeline
 
 
 # for debugging only
-WITH_TIMELINE = True
+WITH_TIMELINE = False
 PATH_TO_TIMELINE = 'timeline.json'
 
 
-class FaceDetector:
+class Detector:
     def __init__(self, model_path, gpu_memory_fraction=0.25, visible_device_list='0'):
         """
         Arguments:
