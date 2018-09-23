@@ -77,7 +77,7 @@ def block(x, num_units, out_channels=None, use_atrous=False, scope='stage'):
         for j in range(2, num_units + 1):
             with tf.variable_scope('unit_%d' % j):
                 x, y = concat_shuffle_split(x, y)
-                x = basic_unit(x, rate=1 is not use_atrous else 2)
+                x = basic_unit(x, rate=1 if not use_atrous else 2)
         x = tf.concat([x, y], axis=3)
 
     return x
