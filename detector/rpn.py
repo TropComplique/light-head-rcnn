@@ -76,19 +76,13 @@ def rpn(x, is_training, image_size, params):
     )
     # anchors are raw because they are non pruned and non clipped
 
-    proposals, encoded_boxes, objectness_scores, anchors = get_proposals(
+    all_proposals, rpn_output, anchors = postprocess_and_get_proposals(
         raw_encoded_boxes, raw_objectness_scores, raw_anchors,
         num_anchors_per_cell=num_anchors_per_cell,
-        is_training=is_training, image_size=image_size,
-        min_proposal_area=params['min_proposal_area'],
-        before_nms_score_threshold=params['before_nms_score_threshold'],
-        nms_max_output_size=params['nms_max_output_size'],
-        iou_threshold=params['proposal_iou_threshold']
+        is_training=is_training, image_size=image_size
     )
-    rpn_output = {
-        'encoded_boxes': encoded_boxes,
-        'objectness_scores': objectness_scores
-    }
+    proposals = choose_proposals(all_proposals, params)
+
     return proposals, rpn_output, anchors
 
 
@@ -144,12 +138,10 @@ def generate_anchors(
         return tf.stack([cy - 0.5*h, cx - 0.5*w, cy + 0.5*h, cx + 0.5*w], axis=3)
 
 
-def get_proposals(
+def postprocess_and_get_proposals(
         encoded_boxes, objectness_scores,
         anchors, num_anchors_per_cell,
-        is_training, image_size,
-        min_proposal_area=64, before_nms_score_threshold=0.01,
-        nms_max_output_size=300, iou_threshold=0.7):
+        is_training, image_size):
     """
     Arguments:
         encoded_boxes: a float tensor with shape [batch_size, height, width, 4 * N].
@@ -158,16 +150,9 @@ def get_proposals(
         num_anchors_per_cell: an integer, it equals to N.
         is_training: a boolean.
         image_size: a tuple of scalar int tensors (image_width, image_height).
-        min_proposal_area: a float number.
-        before_nms_score_threshold: a float number.
-        nms_max_output_size: an integer.
-        iou_threshold: a float number.
     Returns:
-        rois: a list of float tensors,
-            where `i`-th tensor has shape [num_proposals_i, 4],
-            and `sum_i num_proposals_i = total_num_proposals`.
-        roi_image_indices: an int tensor with shape [total_num_proposals].
-        num_proposals_per_image: an int tensor with shape [batch_size].
+        boxes: a float tensor with shape [batch_size, num_anchors, 4].
+        probabilities: a float tensor with shape [batch_size, num_anchors].
         encoded_boxes: a float tensor with shape [batch_size, num_anchors, 4].
         objectness_scores: a float tensor with shape [batch_size, num_anchors, 2].
         anchors: a float tensor with shape [num_anchors, 4].
@@ -202,18 +187,46 @@ def get_proposals(
     probabilities = tf.nn.softmax(objectness_scores, axis=2)  # shape [batch_size, num_anchors, 2]
     probabilities = probabilities[:, :, 1]  # shape [batch_size, num_anchors]
     boxes = batch_decode(encoded_boxes, anchors)  # shape [batch_size, num_anchors, 4]
+    boxes = clip_by_window(boxes, window)  # shape [batch_size, num_anchors, 4]
 
-    boxes_per_image = tf.unstack(boxes, axis=0)
-    probabilities_per_image = tf.unstack(probabilities, axis=0)
+    # these proposals need filtering
+    all_proposals = {
+        'boxes': boxes,
+        'probabilities': probabilities,
+    }
+
+    # this will be used for computing the loss
+    rpn_output = {
+        'encoded_boxes': encoded_boxes,
+        'objectness_scores': objectness_scores
+    }
+
+    return all_proposals, rpn_output, anchors
+
+
+def choose_proposals(all_proposals, params):
+    """
+    Returns:
+        rois: a list of float tensors,
+            where `i`-th tensor has shape [num_proposals_i, 4],
+            and `sum_i num_proposals_i = total_num_proposals`.
+        roi_image_indices: an int tensor with shape [total_num_proposals].
+        num_proposals_per_image: an int tensor with shape [batch_size].
+    """
+
+    batch_size = all_proposals['boxes'].shape[0].value
+    boxes_per_image = tf.unstack(all_proposals['boxes'], axis=0)
+    probabilities_per_image = tf.unstack(all_proposals['probabilities'], axis=0)
+
     rois, roi_image_indices, num_proposals = [], [], []
     for n, b, p in zip(range(batch_size), boxes_per_image, probabilities_per_image):
         # `n` - index of an image in the batch
 
-        b = clip_by_window(b, window)
-        b, p = remove_some_proposals(b, p, min_proposal_area)
+        b, p = remove_some_proposals(b, p, params['min_proposal_area'])
         to_keep = tf.image.non_max_suppression(
-            b, p, nms_max_output_size,
-            iou_threshold, before_nms_score_threshold
+            b, p, params['nms_max_output_size'],
+            params['iou_threshold'],
+            params['before_nms_score_threshold']
         )
         b = tf.gather(b, to_keep)
         k = tf.size(to_keep)
@@ -231,7 +244,7 @@ def get_proposals(
         'roi_image_indices': tf.concat(roi_image_indices, axis=0),
         'num_proposals_per_image': tf.stack(num_proposals, axis=0)
     }
-    return proposals, encoded_boxes, objectness_scores, anchors
+    return proposals
 
 
 def remove_some_proposals(boxes, scores, min_area):
@@ -253,6 +266,7 @@ def remove_some_proposals(boxes, scores, min_area):
         ymax = tf.maximum(ymin, ymax)
         xmax = tf.maximum(xmin, xmax)
         boxes = tf.stack([ymin, xmin, ymax, xmax], axis=1)
+        # (and maybe i don't need to do this)
 
     # maybe this part is slow
     with tf.name_scope('remove_small_proposals'):

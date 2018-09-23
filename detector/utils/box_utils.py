@@ -202,17 +202,17 @@ def prune_outside_window(boxes, window):
 def clip_by_window(boxes, window):
     """
     Arguments:
-        boxes: a float tensor with shape [N, 4].
+        boxes: a float tensor with shape [N, 4] or [M, N, 4].
         window: a float tensor with shape [4]
             representing [ymin, xmin, ymax, xmax] of the window.
     Returns:
-        a float tensor with shape [N, 4].
+        a float tensor with shape [N, 4] or [M, N, 4].
     """
     with tf.name_scope('clip_by_window'):
-        ymin, xmin, ymax, xmax = tf.unstack(boxes, axis=1)
+        ymin, xmin, ymax, xmax = tf.unstack(boxes, axis=-1)
         win_ymin, win_xmin, win_ymax, win_xmax = tf.unstack(window, axis=0)
         ymin = tf.clip_by_value(ymin, win_ymin, win_ymax)
         xmin = tf.clip_by_value(xmin, win_xmin, win_xmax)
         ymax = tf.clip_by_value(ymax, win_ymin, win_ymax)
         xmax = tf.clip_by_value(xmax, win_xmin, win_xmax)
-        return tf.stack([ymin, xmin, ymax, xmax], axis=1)
+        return tf.stack([ymin, xmin, ymax, xmax], axis=-1)

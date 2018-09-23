@@ -51,24 +51,33 @@ def shufflenet(images, depth_multiplier='1.0'):
 
             x = block(x, num_units=4, out_channels=initial_depth, scope='Stage2')  # stride 8
             rpn_features = block(x, num_units=8, scope='Stage3')  # stride 16
-            x = block(rpn_features, num_units=4, scope='Stage4')
+            x = block(rpn_features, num_units=4, use_atrous=True, scope='Stage4')
+
+            # in the last stage i don't downsample so i use
+            # dilated convolutions to preserve receptive field size
 
             final_channels = 1024 if depth_multiplier != '2.0' else 2048
-            second_stage_features = slim.conv2d(x, final_channels, (1, 1), stride=1, scope='Conv5')  # stride 32
+            second_stage_features = slim.conv2d(x, final_channels, (1, 1), stride=1, scope='Conv5')  # stride 16
+
+            # if you set `use_atrous=False` in the last
+            # stage then the last stride will be 32
 
     return {'rpn_features': rpn_features, 'second_stage_features': second_stage_features}
 
 
-def block(x, num_units, out_channels=None, scope='stage'):
+def block(x, num_units, out_channels=None, use_atrous=False, scope='stage'):
     with tf.variable_scope(scope):
 
         with tf.variable_scope('unit_1'):
-            x, y = basic_unit_with_downsampling(x, out_channels)
+            x, y = basic_unit_with_downsampling(
+                x, out_channels,
+                downsample=not use_atrous
+            )
 
         for j in range(2, num_units + 1):
             with tf.variable_scope('unit_%d' % j):
                 x, y = concat_shuffle_split(x, y)
-                x = basic_unit(x)
+                x = basic_unit(x, rate=1 is not use_atrous else 2)
         x = tf.concat([x, y], axis=3)
 
     return x
@@ -90,23 +99,24 @@ def concat_shuffle_split(x, y):
         return x, y
 
 
-def basic_unit(x):
+def basic_unit(x, rate=1):
     in_channels = x.shape[3].value
     x = slim.conv2d(x, in_channels, (1, 1), stride=1, scope='conv1x1_before')
-    x = depthwise_conv(x, kernel=3, stride=1, activation_fn=None, scope='depthwise')
+    x = depthwise_conv(x, kernel=3, stride=1, rate=rate, activation_fn=None, scope='depthwise')
     x = slim.conv2d(x, in_channels, (1, 1), stride=1, scope='conv1x1_after')
     return x
 
 
-def basic_unit_with_downsampling(x, out_channels=None):
+def basic_unit_with_downsampling(x, out_channels=None, downsample=True):
     in_channels = x.shape[3].value
     out_channels = 2 * in_channels if out_channels is None else out_channels
+    stride = 2 if downsample else 1  # paradoxically, it sometimes doesn't downsample
 
     y = slim.conv2d(x, in_channels, (1, 1), stride=1, scope='conv1x1_before')
-    y = depthwise_conv(y, kernel=3, stride=2, activation_fn=None, scope='depthwise')
+    y = depthwise_conv(y, kernel=3, stride=stride, activation_fn=None, scope='depthwise')
     y = slim.conv2d(y, out_channels // 2, (1, 1), stride=1, scope='conv1x1_after')
 
     with tf.variable_scope('second_branch'):
-        x = depthwise_conv(x, kernel=3, stride=2, activation_fn=None, scope='depthwise')
+        x = depthwise_conv(x, kernel=3, stride=stride, activation_fn=None, scope='depthwise')
         x = slim.conv2d(x, out_channels // 2, (1, 1), stride=1, scope='conv1x1_after')
         return x, y

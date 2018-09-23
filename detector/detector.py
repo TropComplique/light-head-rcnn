@@ -188,7 +188,7 @@ class Detector:
                 # i don't need to do nms here,
                 # because i did nms at proposal generation stage
                 k = tf.minimum(params['num_hard_examples'], tf.shape(cls_losses)[0])
-                _, hard_rois_indices = tf.nn.top_k(cls_losses, k, sorted=False)
+                _, hard_rois_indices = tf.nn.top_k(loc_losses + cls_losses, k, sorted=False)
                 hard_loc_losses = tf.gather(loc_losses, hard_rois_indices)  # shape [k]
                 hard_cls_losses = tf.gather(cls_losses, hard_rois_indices)  # shape [k]
 

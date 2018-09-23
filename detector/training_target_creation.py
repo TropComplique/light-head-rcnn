@@ -188,7 +188,7 @@ def create_targets(anchors, groundtruth_boxes, groundtruth_labels, matches):
     matched_anchor_indices = tf.where(tf.greater_equal(matches, 0))  # shape [num_matches, 1]
     matched_anchor_indices = tf.to_int32(tf.squeeze(matched_anchor_indices, axis=1))
 
-    unmatched_anchor_indices = tf.where(tf.less(matches, 0))  # shape [num_anchors - num_matches]
+    unmatched_anchor_indices = tf.where(tf.less(matches, 0))  # shape [num_anchors - num_matches, 1]
     unmatched_anchor_indices = tf.to_int32(tf.squeeze(unmatched_anchor_indices, axis=1))
 
     matched_gt_indices = tf.gather(matches, matched_anchor_indices)  # shape [num_matches]
