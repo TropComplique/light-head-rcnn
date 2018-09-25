@@ -3,9 +3,7 @@ import os
 import shutil
 from model import model_fn
 from detector.input_pipeline.pipeline import resize_keeping_aspect_ratio
-
-# from params import wider_light_params as params
-from params import coco_params as params
+from params import coco_light_params as params
 
 
 """

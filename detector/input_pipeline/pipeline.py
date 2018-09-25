@@ -120,15 +120,15 @@ class Pipeline:
         # you will need to tune them all, haha
 
         image, boxes, labels = random_image_crop(
-            image, boxes, labels, probability=0.2,
+            image, boxes, labels, probability=0.1,
             min_object_covered=0.9,
             aspect_ratio_range=(0.75, 1.33),
             area_range=(0.4, 0.8),
             overlap_thresh=0.3
         )
 
-        image = random_color_manipulations(image, probability=0.2, grayscale_probability=0.05)
-        image = random_pixel_value_scale(image, minval=0.8, maxval=1.2, probability=0.1)
+        image = random_color_manipulations(image, probability=0.1, grayscale_probability=0.05)
+        image = random_pixel_value_scale(image, minval=0.8, maxval=1.2, probability=0.05)
         boxes = random_jitter_boxes(boxes, ratio=0.01)
         image, boxes = random_flip_left_right(image, boxes)
 

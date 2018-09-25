@@ -51,9 +51,10 @@ def shufflenet(images, depth_multiplier='1.0'):
 
             x = block(x, num_units=4, out_channels=initial_depth, scope='Stage2')  # stride 8
             rpn_features = block(x, num_units=8, scope='Stage3')  # stride 16
-            x = block(rpn_features, num_units=4, use_atrous=True, scope='Stage4')
+            x = block(rpn_features, num_units=4, use_atrous=False, scope='Stage4')
 
-            # in the last stage i don't downsample so i use
+            # if use_atrous=True
+            # then in the last stage i don't downsample, so i use
             # dilated convolutions to preserve receptive field size
 
             final_channels = 1024 if depth_multiplier != '2.0' else 2048
