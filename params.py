@@ -34,7 +34,7 @@ coco_params = {
     # a float number
     'proposal_iou_threshold': 0.7,
     # an integer
-    'rpn_num_channels': 128,
+    'rpn_num_channels': 512,
 
     # LOSS:
 
