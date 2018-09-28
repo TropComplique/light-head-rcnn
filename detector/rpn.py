@@ -225,7 +225,7 @@ def choose_proposals(all_proposals, params):
         b, p = remove_some_proposals(b, p, params['min_proposal_area'])
         to_keep = tf.image.non_max_suppression(
             b, p, params['nms_max_output_size'],
-            params['iou_threshold'],
+            params['proposal_iou_threshold'],
             params['before_nms_score_threshold']
         )
         b = tf.gather(b, to_keep)

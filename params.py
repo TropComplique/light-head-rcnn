@@ -74,6 +74,7 @@ coco_params = {
     'k': 15,
     # an integer
     'channels_middle': 256,
+    # an integer
     'fc_layer_size': 2048,
 
     # ANCHOR GENERATION:

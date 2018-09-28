@@ -37,7 +37,7 @@ def get_input_fn(is_training):
     return input_fn
 
 
-session_config = tf.ConfigProto()
+session_config = tf.ConfigProto(allow_soft_placement=True)
 session_config.gpu_options.visible_device_list = GPU_TO_USE
 run_config = tf.estimator.RunConfig()
 run_config = run_config.replace(
