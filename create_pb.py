@@ -15,8 +15,9 @@ Also it creates a .pb frozen inference graph.
 
 
 OUTPUT_FOLDER = 'export/'  # for savedmodel
-GPU_TO_USE = '0'
+GPU_TO_USE = '1'
 PB_FILE_PATH = 'model.pb'
+RESIZE = False
 MIN_DIMENSION = 800
 MAX_DIMENSION = 1200
 WIDTH, HEIGHT = None, None
@@ -43,11 +44,13 @@ def export_savedmodel():
         with tf.device('/gpu:0'):
 
             images = tf.to_float(raw_images)
-            images = tf.squeeze(images, 0)
-            resized_images = resize_keeping_aspect_ratio(images, MIN_DIMENSION, MAX_DIMENSION)
+            if RESIZE:
+                images = tf.squeeze(images, 0)
+                images = resize_keeping_aspect_ratio(images, MIN_DIMENSION, MAX_DIMENSION)
+                images = tf.expand_dims(images, 0)
 
             features = {
-                'images': (1.0/255.0) * tf.expand_dims(resized_images, 0),
+                'images': (1.0/255.0) * images,
                 'images_size': tf.stack([w, h])
             }
         return tf.estimator.export.ServingInputReceiver(features, {'images': raw_images})

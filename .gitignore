@@ -7,4 +7,5 @@ export/
 *.pb
 *.jpg
 *.zip
+evaluation/coco_predictions.json
 
