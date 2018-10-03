@@ -17,7 +17,7 @@ Also it creates a .pb frozen inference graph.
 OUTPUT_FOLDER = 'export/'  # for savedmodel
 GPU_TO_USE = '1'
 PB_FILE_PATH = 'model.pb'
-RESIZE = False
+RESIZE = True
 MIN_DIMENSION = 800
 MAX_DIMENSION = 1200
 WIDTH, HEIGHT = None, None

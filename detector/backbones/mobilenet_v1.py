@@ -7,7 +7,7 @@ BATCH_NORM_MOMENTUM = 0.997
 BATCH_NORM_EPSILON = 1e-3
 
 
-def mobilenet_v1(images, depth_multiplier=1.0):
+def mobilenet(images, depth_multiplier=1.0):
     """
     Arguments:
         images: a float tensor with shape [batch_size, height, width, 3],
