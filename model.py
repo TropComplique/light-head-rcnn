@@ -21,7 +21,7 @@ def model_fn(features, labels, mode, params, config):
         checkpoint_scope = 'resnet_v1_50/'
     elif params['backbone'] == 'mobilenet':
         feature_extractor = lambda x: mobilenet(x, params['depth_multiplier'])
-        checkpoint_scope = 'MobilenetV2/'
+        checkpoint_scope = 'MobilenetV1/'
     elif params['backbone'] == 'shufflenet':
         feature_extractor = lambda x: shufflenet(x, str(params['depth_multiplier']))
         checkpoint_scope = 'ShuffleNetV2/'
