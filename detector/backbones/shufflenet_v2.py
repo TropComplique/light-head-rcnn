@@ -26,7 +26,7 @@ def shufflenet(images, depth_multiplier='1.0'):
     def batch_norm(x):
         x = tf.layers.batch_normalization(
             x, axis=3, center=True, scale=True,
-            trainable=False, training=False,
+            trainable=True, training=False,
             momentum=BATCH_NORM_MOMENTUM,
             epsilon=BATCH_NORM_EPSILON,
             fused=True, name='batch_norm'

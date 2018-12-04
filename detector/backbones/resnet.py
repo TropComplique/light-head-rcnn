@@ -54,7 +54,7 @@ def resnet(images):
            x, axis=3, center=True, scale=True,
            momentum=BATCH_NORM_MOMENTUM,
            epsilon=BATCH_NORM_EPSILON,
-           training=False, trainable=False,
+           training=False, trainable=True,
            fused=True, name='BatchNorm'
         )
         return x
