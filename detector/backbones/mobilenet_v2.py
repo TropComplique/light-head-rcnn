@@ -66,16 +66,13 @@ def mobilenet(images, depth_multiplier=1.0):
                 (6, 320, 1)
             ]
 
-            # initial layers are not trainable
-            with slim.arg_scope([slim.conv2d, depthwise_conv], trainable=False):
-                x = slim.conv2d(x, depth(32), (3, 3), stride=2, scope='Conv')
-                x = inverted_residual_block(
-                    x, stride=1, expansion_factor=1,
-                    output_channels=depth(16),
-                    scope='expanded_conv'
-                )
-                x, i = stack_blocks(x, 1, block_configs[0:2])
-
+            x = slim.conv2d(x, depth(32), (3, 3), stride=2, scope='Conv')
+            x = inverted_residual_block(
+                x, stride=1, expansion_factor=1,
+                output_channels=depth(16),
+                scope='expanded_conv'
+            )
+            x, i = stack_blocks(x, 1, block_configs[0:2])  # stride 4
             rpn_features, i = stack_blocks(x, i, block_configs[2:12])  # stride 16
             x, _ = stack_blocks(rpn_features, i, block_configs[12:])
             final_channels = int(1280 * depth_multiplier) if depth_multiplier > 1.0 else 1280

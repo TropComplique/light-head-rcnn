@@ -20,7 +20,7 @@ To use it just run:
 python train.py
 """
 
-GPU_TO_USE = '0'
+GPU_TO_USE = '1'
 
 
 def get_input_fn(is_training):

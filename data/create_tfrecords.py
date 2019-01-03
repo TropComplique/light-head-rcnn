@@ -27,8 +27,8 @@ Example of a json annotation (with filename "132416.json"):
   "size": {"depth": 3, "width": 1920, "height": 1080}
 }
 
-Labels text file contains a list of all label names.
-One label name per line. Number of line - label encoding by integer.
+`labels` text file contains a list of all label names.
+One label name per line. Number of line - label encoding by an integer.
 
 Example of use:
 python create_tfrecords.py \
@@ -57,7 +57,7 @@ def dict_to_tf_example(annotation, image_dir, label_encoder):
     box coordinates provided by the raw data.
 
     Arguments:
-        data: a dict.
+        annotation: a dict.
         image_dir: a string, path to the image directory.
         label_encoder: a dict, class name -> integer.
     Returns:

@@ -5,9 +5,7 @@ import tensorflow as tf
 def depthwise_conv(
         x, kernel=3, stride=1, rate=1, padding='SAME',
         activation_fn=None, normalizer_fn=None,
-        weights_initializer=tf.contrib.layers.xavier_initializer(),
-        trainable=True, data_format='NHWC',
-        scope='depthwise_conv'):
+        data_format='NHWC', scope='depthwise_conv'):
 
     with tf.variable_scope(scope):
         assert data_format == 'NHWC'
@@ -15,8 +13,7 @@ def depthwise_conv(
         W = tf.get_variable(
             'depthwise_weights',
             [kernel, kernel, in_channels, 1],
-            dtype=tf.float32, trainable=trainable,
-            initializer=weights_initializer
+            dtype=tf.float32
         )
         x = tf.nn.depthwise_conv2d(x, W, [1, stride, stride, 1], padding, rate=[rate, rate], data_format='NHWC')
         x = normalizer_fn(x) if normalizer_fn is not None else x  # batch normalization

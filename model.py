@@ -6,12 +6,12 @@ from metrics import Evaluator
 
 MOMENTUM = 0.9
 USE_NESTEROV = True
-GRADIENT_CLIP = 10.0
 MOVING_AVERAGE_DECAY = 0.997
 
 
 def model_fn(features, labels, mode, params, config):
-    """This is a function for creating a computational tensorflow graph.
+    """
+    This is a function for creating a computational tensorflow graph.
     The function is in format required by tf.estimator.
     """
 
@@ -100,8 +100,14 @@ def model_fn(features, labels, mode, params, config):
 
     with tf.variable_scope('optimizer'):
         optimizer = tf.train.MomentumOptimizer(learning_rate, momentum=MOMENTUM, use_nesterov=USE_NESTEROV)
-        grads_and_vars = optimizer.compute_gradients(total_loss)
-        grads_and_vars = [(tf.clip_by_norm(g, GRADIENT_CLIP), v) for g, v in grads_and_vars]
+
+        # for training with shufflenet only:
+        var_list = [
+            v for v in tf.trainable_variables()
+            if 'Conv1' not in v.name and 'Stage2' not in v.name
+        ]
+
+        grads_and_vars = optimizer.compute_gradients(total_loss, var_list)
         train_op = optimizer.apply_gradients(grads_and_vars, global_step)
 
     for g, v in grads_and_vars:

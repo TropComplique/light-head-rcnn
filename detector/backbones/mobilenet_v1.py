@@ -36,15 +36,14 @@ def mobilenet(images, depth_multiplier=1.0):
 
     with tf.variable_scope('MobilenetV1'):
         params = {
-            'padding': 'SAME',
-            'activation_fn': tf.nn.relu6, 'normalizer_fn': batch_norm,
-            'data_format': 'NHWC'
+            'padding': 'SAME', 'activation_fn': tf.nn.relu6,
+            'normalizer_fn': batch_norm, 'data_format': 'NHWC'
         }
         with slim.arg_scope([slim.conv2d, depthwise_conv], **params):
             features = {}
 
             layer_name = 'Conv2d_0'
-            x = slim.conv2d(x, depth(32), (3, 3), stride=2, trainable=False, scope=layer_name)
+            x = slim.conv2d(x, depth(32), (3, 3), stride=2, scope=layer_name)
             features[layer_name] = x
 
             strides_and_filters = [
@@ -56,14 +55,12 @@ def mobilenet(images, depth_multiplier=1.0):
             ]
             for i, (stride, num_filters) in enumerate(strides_and_filters, 1):
 
-                trainable = i > 4
-
                 layer_name = 'Conv2d_%d_depthwise' % i
-                x = depthwise_conv(x, stride=stride, trainable=trainable, scope=layer_name)
+                x = depthwise_conv(x, stride=stride, scope=layer_name)
                 features[layer_name] = x
 
                 layer_name = 'Conv2d_%d_pointwise' % i
-                x = slim.conv2d(x, depth(num_filters), (1, 1), stride=1, trainable=trainable, scope=layer_name)
+                x = slim.conv2d(x, depth(num_filters), (1, 1), stride=1, scope=layer_name)
                 features[layer_name] = x
 
     return {'rpn_features': features['Conv2d_11_pointwise'], 'second_stage_features': features['Conv2d_13_pointwise']}

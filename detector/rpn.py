@@ -222,7 +222,7 @@ def choose_proposals(all_proposals, params):
     for n, b, p in zip(range(batch_size), boxes_per_image, probabilities_per_image):
         # `n` - index of an image in the batch
 
-        b, p = remove_some_proposals(b, p, params['min_proposal_area'])
+        # let's hope boxes in b have strictly positive area
         to_keep = tf.image.non_max_suppression(
             b, p, params['nms_max_output_size'],
             params['proposal_iou_threshold'],
@@ -245,33 +245,3 @@ def choose_proposals(all_proposals, params):
         'num_proposals_per_image': tf.stack(num_proposals, axis=0)
     }
     return proposals
-
-
-def remove_some_proposals(boxes, scores, min_area):
-    """
-    Arguments:
-        boxes: a float tensor with shape [N, 4].
-        scores: a float tensor with shape [N].
-        min_area: a float number.
-    Returns:
-        boxes: a float tensor with shape [M, 4], where M <= N.
-        scores: a float tensor with shape [M].
-    """
-    # make sure that coordinates are correct
-    # (ymin < ymax and xmin < xmax)
-    with tf.name_scope('fix_coordinates'):
-        ymin, xmin, ymax, xmax = tf.unstack(boxes, axis=1)
-        ymin = tf.minimum(ymin, ymax)
-        xmin = tf.minimum(xmin, xmax)
-        ymax = tf.maximum(ymin, ymax)
-        xmax = tf.maximum(xmin, xmax)
-        boxes = tf.stack([ymin, xmin, ymax, xmax], axis=1)
-        # (and maybe i don't need to do this)
-
-    # maybe this part is slow
-    with tf.name_scope('remove_small_proposals'):
-        area = (ymax - ymin) * (xmax - xmin)
-        is_big = tf.greater_equal(area, min_area)
-        boxes = tf.boolean_mask(boxes, is_big)
-        scores = tf.boolean_mask(scores, is_big)
-        return boxes, scores

@@ -21,14 +21,12 @@ coco_params = {
 
     'num_steps': 2000000,
     'lr_boundaries': [1500000],
-    'lr_values': [5e-3, 5e-4],
+    'lr_values': [7e-3, 7e-4],
 
     # PROPOSAL GENERATION:
 
-    # an integer
-    'min_proposal_area': 36,
     # a float number
-    'before_nms_score_threshold': 1e-7,
+    'before_nms_score_threshold': 1e-4,
     # an integer
     'nms_max_output_size': 2000,
     # a float number

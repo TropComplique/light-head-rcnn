@@ -39,15 +39,12 @@ def shufflenet(images, depth_multiplier='1.0'):
     with tf.variable_scope('ShuffleNetV2'):
         params = {
             'padding': 'SAME', 'activation_fn': tf.nn.relu,
-            'normalizer_fn': batch_norm, 'data_format': 'NHWC',
-            'weights_initializer': tf.contrib.layers.xavier_initializer()
+            'normalizer_fn': batch_norm, 'data_format': 'NHWC'
         }
         with slim.arg_scope([slim.conv2d, depthwise_conv], **params):
 
-            # initial layers are not trainable
-            with slim.arg_scope([slim.conv2d, depthwise_conv], trainable=False):
-                x = slim.conv2d(x, 24, (3, 3), stride=2, scope='Conv1')
-                x = slim.max_pool2d(x, (3, 3), stride=2, padding='SAME', scope='MaxPool')  # stride 4
+            x = slim.conv2d(x, 24, (3, 3), stride=2, scope='Conv1')
+            x = slim.max_pool2d(x, (3, 3), stride=2, padding='SAME', scope='MaxPool')  # stride 4
 
             x = block(x, num_units=4, out_channels=initial_depth, scope='Stage2')  # stride 8
             rpn_features = block(x, num_units=8, scope='Stage3')  # stride 16
