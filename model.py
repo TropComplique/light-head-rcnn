@@ -4,8 +4,6 @@ from detector.backbones import resnet, mobilenet, shufflenet
 from metrics import Evaluator
 
 
-MOMENTUM = 0.9
-USE_NESTEROV = True
 MOVING_AVERAGE_DECAY = 0.997
 
 
@@ -95,17 +93,25 @@ def model_fn(features, labels, mode, params, config):
     assert mode == tf.estimator.ModeKeys.TRAIN
     with tf.variable_scope('learning_rate'):
         global_step = tf.train.get_global_step()
-        learning_rate = tf.train.piecewise_constant(global_step, params['lr_boundaries'], params['lr_values'])
+        learning_rate = tf.train.cosine_decay(
+            params['initial_learning_rate'],
+            global_step, decay_steps=params['num_steps']
+        )
         tf.summary.scalar('learning_rate', learning_rate)
 
     with tf.variable_scope('optimizer'):
-        optimizer = tf.train.MomentumOptimizer(learning_rate, momentum=MOMENTUM, use_nesterov=USE_NESTEROV)
+        optimizer = tf.train.AdamOptimizer(learning_rate)
 
-        # for training with shufflenet only:
-        var_list = [
-            v for v in tf.trainable_variables()
-            if 'Conv1' not in v.name and 'Stage2' not in v.name
-        ]
+        if params['backbone'] == 'shufflenet':
+            var_list = [
+                v for v in tf.trainable_variables()
+                if 'Conv1' not in v.name and 'Stage2' not in v.name
+            ]
+        elif params['backbone'] == 'mobilenet':
+            var_list = [
+                v for v in tf.trainable_variables()
+                if all('Conv2d_%d_' % i not in v.name for i in range(6))
+            ]
 
         grads_and_vars = optimizer.compute_gradients(total_loss, var_list)
         train_op = optimizer.apply_gradients(grads_and_vars, global_step)

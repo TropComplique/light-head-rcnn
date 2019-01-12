@@ -120,7 +120,7 @@ class Pipeline:
         # you will need to tune them all, haha
 
         image, boxes, labels = random_image_crop(
-            image, boxes, labels, probability=0.1,
+            image, boxes, labels, probability=0.2,
             min_object_covered=0.9,
             aspect_ratio_range=(0.75, 1.33),
             area_range=(0.4, 0.8),

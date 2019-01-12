@@ -19,9 +19,8 @@ coco_params = {
     # an integer or None
     'training_max_dimension': 1400,
 
-    'num_steps': 2000000,
-    'lr_boundaries': [1500000],
-    'lr_values': [7e-3, 7e-4],
+    'num_steps': 2500000,
+    'initial_learning_rate': 1e-4,
 
     # PROPOSAL GENERATION:
 
