@@ -1,11 +1,5 @@
 import tensorflow as tf
 import numpy as np
-from tensorflow.python.client import timeline
-
-
-# for debugging only
-WITH_TIMELINE = False
-PATH_TO_TIMELINE = 'timeline.json'
 
 
 class Detector:
@@ -28,7 +22,8 @@ class Detector:
         self.output_ops = [
             graph.get_tensor_by_name('import/boxes:0'),
             graph.get_tensor_by_name('import/labels:0'),
-            graph.get_tensor_by_name('import/scores:0')
+            graph.get_tensor_by_name('import/scores:0'),
+            graph.get_tensor_by_name('import/num_boxes_per_image:0')
         ]
 
         gpu_options = tf.GPUOptions(
@@ -38,7 +33,7 @@ class Detector:
         config_proto = tf.ConfigProto(gpu_options=gpu_options, log_device_placement=False)
         self.sess = tf.Session(graph=graph, config=config_proto)
 
-    def __call__(self, image, score_threshold=0.5):
+    def __call__(self, image, score_threshold=0.1):
         """Detect faces.
 
         Arguments:
@@ -54,24 +49,12 @@ class Detector:
         """
 
         feed_dict = {self.input_image: np.expand_dims(image, 0)}
+        boxes, labels, scores, n = self.sess.run(self.output_ops, feed_dict)
 
-        if WITH_TIMELINE:
-            options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-            run_metadata = tf.RunMetadata()
-            boxes, labels, scores = self.sess.run(
-                self.output_ops, feed_dict,
-                options=options, run_metadata=run_metadata
-            )
-            fetched_timeline = timeline.Timeline(run_metadata.step_stats)
-            chrome_trace = fetched_timeline.generate_chrome_trace_format()
-            with open(PATH_TO_TIMELINE, 'w') as f:
-                f.write(chrome_trace)
-        else:
-            boxes, labels, scores = self.sess.run(self.output_ops, feed_dict)
-
-        to_keep = scores > score_threshold
-        boxes = boxes[to_keep]
-        labels = labels[to_keep]
-        scores = scores[to_keep]
+        n = n[0]
+        to_keep = scores[:n] > score_threshold
+        boxes = boxes[:n][to_keep]
+        labels = labels[:n][to_keep]
+        scores = scores[:n][to_keep]
 
         return boxes, labels, scores

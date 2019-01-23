@@ -16,12 +16,12 @@ Also it creates a .pb frozen inference graph.
 
 OUTPUT_FOLDER = 'export/'  # for savedmodel
 GPU_TO_USE = '1'
-PB_FILE_PATH = 'model.pb'
+PB_FILE_PATH = 'inference/model.pb'
 RESIZE = True
 MIN_DIMENSION = 800
 MAX_DIMENSION = 1200
 WIDTH, HEIGHT = None, None
-NMS_MAX_OUTPUT_SIZE = 100
+NMS_MAX_OUTPUT_SIZE = 300
 BATCH_SIZE = 1  # must be an integer
 assert BATCH_SIZE == 1
 

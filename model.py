@@ -95,11 +95,13 @@ def model_fn(features, labels, mode, params, config):
     assert mode == tf.estimator.ModeKeys.TRAIN
     with tf.variable_scope('learning_rate'):
         global_step = tf.train.get_global_step()
-        learning_rate = tf.train.piecewise_constant(global_step, params['lr_boundaries'], params['lr_values'])
+        # learning_rate = tf.train.piecewise_constant(global_step, params['lr_boundaries'], params['lr_values'])
+        learning_rate = tf.train.cosine_decay(1e-4, global_step, decay_steps=3000000)
         tf.summary.scalar('learning_rate', learning_rate)
 
     with tf.variable_scope('optimizer'):
-        optimizer = tf.train.MomentumOptimizer(learning_rate, momentum=MOMENTUM, use_nesterov=USE_NESTEROV)
+        optimizer = tf.train.AdamOptimizer(learning_rate)
+        #optimizer = tf.train.MomentumOptimizer(learning_rate, momentum=MOMENTUM, use_nesterov=USE_NESTEROV)
 
         # for training with shufflenet only:
         var_list = [

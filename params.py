@@ -19,9 +19,9 @@ coco_params = {
     # an integer or None
     'training_max_dimension': 1400,
 
-    'num_steps': 2000000,
+    'num_steps': 3000000,
     'lr_boundaries': [1500000],
-    'lr_values': [7e-3, 7e-4],
+    'lr_values': [4e-3, 4e-4],
 
     # PROPOSAL GENERATION:
 
@@ -89,7 +89,7 @@ coco_params = {
 
 coco_light_params = coco_params.copy()
 coco_light_params.update({
-    'model_dir': '/home/dan/work/light-head-rcnn/models/run01/',
+    'model_dir': '/home/dan/work/light-head-rcnn/models/run03/',
     'train_dataset_path': '/mnt/datasets/COCO/train_shards/',
     'val_dataset_path': '/mnt/datasets/COCO/val_shards/',
     'pretrained_checkpoint': 'pretrained/shufflenet_v2_1.0x/model.ckpt-1661328',
