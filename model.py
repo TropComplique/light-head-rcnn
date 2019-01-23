@@ -111,6 +111,13 @@ def model_fn(features, labels, mode, params, config):
             var_list = [
                 v for v in tf.trainable_variables()
                 if all('Conv2d_%d_' % i not in v.name for i in range(6))
+                and 'Conv2d_0' not in v.name
+            ]
+        elif params['backbone'] == 'resnet':
+            var_list = [
+                v for v in tf.trainable_variables()
+                if 'resnet_v1_50/block1/' not in v.name
+                and 'resnet_v1_50/conv1/' not in v.name
             ]
 
         grads_and_vars = optimizer.compute_gradients(total_loss, var_list)

@@ -1,9 +1,9 @@
 
 coco_params = {
 
-    'model_dir': '/home/dan/work/light-head-rcnn/models/run00/',
-    'train_dataset_path': '/mnt/datasets/COCO/train_shards/',
-    'val_dataset_path': '/mnt/datasets/COCO/val_shards/',
+    'model_dir': 'models/run00/',
+    'train_dataset_path': '~/datasets/COCO/train_shards/',
+    'val_dataset_path': '~/datasets/COCO/val_shards/',
     'pretrained_checkpoint': 'pretrained/resnet_v1_50.ckpt',
     'num_classes': 80,
 
@@ -88,7 +88,7 @@ coco_params = {
 
 coco_light_params = coco_params.copy()
 coco_light_params.update({
-    'model_dir': '/home/dan/work/light-head-rcnn/models/run03/',
+    'model_dir': 'models/run01/',
     'train_dataset_path': '/mnt/datasets/COCO/train_shards/',
     'val_dataset_path': '/mnt/datasets/COCO/val_shards/',
     'pretrained_checkpoint': 'pretrained/shufflenet_v2_1.0x/model.ckpt-1661328',

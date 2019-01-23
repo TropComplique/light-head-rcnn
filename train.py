@@ -6,7 +6,7 @@ from detector.input_pipeline import Pipeline
 # to train an object detector on coco use this:
 # from params import coco_params as params
 
-# to train an LIGHT object detector on coco use this:
+# to train a LIGHT object detector on coco use this:
 from params import coco_light_params as params
 
 tf.logging.set_verbosity('INFO')
@@ -20,7 +20,7 @@ To use it just run:
 python train.py
 """
 
-GPU_TO_USE = '1'
+GPU_TO_USE = '0'
 
 
 def get_input_fn(is_training):
