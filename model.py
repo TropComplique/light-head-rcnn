@@ -16,25 +16,14 @@ def model_fn(features, labels, mode, params, config):
     # choose a backbone network
     if params['backbone'] == 'resnet':
         feature_extractor = resnet
-        checkpoint_scope = 'resnet_v1_50/'
     elif params['backbone'] == 'mobilenet':
         feature_extractor = lambda x: mobilenet(x, params['depth_multiplier'])
-        checkpoint_scope = 'MobilenetV1/'
     elif params['backbone'] == 'shufflenet':
         feature_extractor = lambda x: shufflenet(x, str(params['depth_multiplier']))
-        checkpoint_scope = 'ShuffleNetV2/'
 
     # build the main graph
     is_training = mode == tf.estimator.ModeKeys.TRAIN
     detector = Detector(features['images'], feature_extractor, is_training, params)
-
-    # use a pretrained backbone network
-    if is_training:
-        with tf.name_scope('init_from_checkpoint'):
-            tf.train.init_from_checkpoint(
-                params['pretrained_checkpoint'],
-                {checkpoint_scope: checkpoint_scope}
-            )
 
     # add NMS to the graph
     if not is_training:

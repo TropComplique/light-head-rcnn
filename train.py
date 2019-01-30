@@ -47,9 +47,24 @@ run_config = run_config.replace(
 )
 
 
+if params['backbone'] == 'resnet':
+    scope_to_restore = 'resnet_v1_50/'
+elif params['backbone'] == 'mobilenet':
+    scope_to_restore = 'MobilenetV1/'
+elif params['backbone'] == 'shufflenet':
+    scope_to_restore = 'ShuffleNetV2/'
+warm_start = tf.estimator.WarmStartSettings(
+    params['pretrained_checkpoint'], [scope_to_restore]
+)
+
+
 train_input_fn = get_input_fn(is_training=True)
 val_input_fn = get_input_fn(is_training=False)
-estimator = tf.estimator.Estimator(model_fn, params=params, config=run_config)
+estimator = tf.estimator.Estimator(
+    model_fn, params=params,
+    config=run_config,
+    warm_start_from=warm_start
+)
 
 
 train_spec = tf.estimator.TrainSpec(train_input_fn, max_steps=params['num_steps'])
