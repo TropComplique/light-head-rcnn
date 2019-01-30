@@ -120,11 +120,11 @@ class Pipeline:
         # you will need to tune them all, haha
 
         image, boxes, labels = random_image_crop(
-            image, boxes, labels, probability=0.2,
+            image, boxes, labels, probability=0.1,
             min_object_covered=0.9,
             aspect_ratio_range=(0.75, 1.33),
-            area_range=(0.4, 0.8),
-            overlap_thresh=0.3
+            area_range=(0.5, 0.9),
+            overlap_thresh=0.2
         )
 
         image = random_color_manipulations(image, probability=0.1, grayscale_probability=0.05)

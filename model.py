@@ -100,7 +100,7 @@ def model_fn(features, labels, mode, params, config):
         tf.summary.scalar('learning_rate', learning_rate)
 
     with tf.variable_scope('optimizer'):
-        optimizer = tf.train.AdamOptimizer(learning_rate)
+        optimizer = tf.train.MomentumOptimizer(learning_rate, momentum=0.9)
 
         if params['backbone'] == 'shufflenet':
             var_list = [
@@ -121,6 +121,10 @@ def model_fn(features, labels, mode, params, config):
             ]
 
         grads_and_vars = optimizer.compute_gradients(total_loss, var_list)
+        grads_and_vars = [
+            (3.0 * g, v) if 'thin_feature_maps' in v.name else (g, v)
+            for g, v in grads_and_vars
+        ]
         train_op = optimizer.apply_gradients(grads_and_vars, global_step)
 
     for g, v in grads_and_vars:

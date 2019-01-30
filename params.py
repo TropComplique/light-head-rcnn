@@ -20,12 +20,12 @@ coco_params = {
     'training_max_dimension': 1400,
 
     'num_steps': 2500000,
-    'initial_learning_rate': 1e-4,
+    'initial_learning_rate': 3e-4,
 
     # PROPOSAL GENERATION:
 
     # a float number
-    'before_nms_score_threshold': 1e-4,
+    'before_nms_score_threshold': 1e-6,
     # an integer
     'nms_max_output_size': 2000,
     # a float number
@@ -53,8 +53,8 @@ coco_params = {
 
     # FINAL POSTPROCESSING:
 
-    'score_threshold': 0.01,
-    'iou_threshold': 0.5,
+    'score_threshold': 0.15,
+    'iou_threshold': 0.6,
     'max_boxes_per_class': 20,
 
     # FEATURE EXTRACTOR:
@@ -96,4 +96,6 @@ coco_light_params.update({
     'depth_multiplier': 1.0,
     'rpn_num_channels': 256,
     'channels_middle': 64,
+    'training_min_dimensions': [700, 800, 900],
+    'training_max_dimension': 1200,
 })

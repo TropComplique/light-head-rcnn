@@ -231,9 +231,9 @@ def choose_proposals(all_proposals, params):
         b = tf.gather(b, to_keep)
         k = tf.size(to_keep)
 
-        # because i do "approximate joint training"
-        b = tf.stop_gradient(b)
-        k = tf.stop_gradient(k)
+        # uncomment this to do "approximate joint training"
+        # b = tf.stop_gradient(b)
+        # k = tf.stop_gradient(k)
 
         rois.append(b)
         roi_image_indices.append(tf.fill([k], n))
