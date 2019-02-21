@@ -34,8 +34,7 @@ class Detector:
         self.sess = tf.Session(graph=graph, config=config_proto)
 
     def __call__(self, image, score_threshold=0.1):
-        """Detect faces.
-
+        """
         Arguments:
             image: a numpy uint8 array with shape [height, width, 3],
                 that represents a RGB image.
