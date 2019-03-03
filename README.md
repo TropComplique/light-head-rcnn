@@ -1,5 +1,5 @@
 This is an implementation of [Light-Head R-CNN: In Defense of Two-Stage Object Detector](https://arxiv.org/abs/1711.07264).  
-Note that this code is failed to reproduce the results from the paper.
+Note that this code works but I failed to reproduce the results from the paper. Something is wrong with it. 
 
 ## Requirements
 1. tensorflow 1.12
