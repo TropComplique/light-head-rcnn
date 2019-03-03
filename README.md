@@ -5,7 +5,7 @@ Note that this code works but I failed to reproduce the results from the paper. 
 1. tensorflow 1.12
 2. numpy, Pillow, tqdm, pycocotools, opencv
 
-### Credit
+## Credit
 This implementation is heavily inspired by:
 1. [Tensorflow Object Detection API](https://github.com/tensorflow/models/tree/master/research/object_detection)
 2. [zengarden/light_head_rcnn](https://github.com/zengarden/light_head_rcnn)
